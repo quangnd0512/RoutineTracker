@@ -3,5 +3,13 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "debug.javascript.defaultRuntimeExecutable": {
+    "pwa-node": "/Users/kakavip/.local/share/mise/shims/node"
+  },
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "headerClassName"
+  ]
 }
