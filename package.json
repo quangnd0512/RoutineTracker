@@ -5,9 +5,9 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "DARK_MODE=media expo run:android",
-    "ios": "DARK_MODE=media expo run:ios",
-    "web": "DARK_MODE=media expo start --web",
+    "android": "cross-env DARK_MODE=media expo run:android",
+    "ios": "cross-env DARK_MODE=media expo run:ios",
+    "web": "cross-env DARK_MODE=media expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -43,10 +43,12 @@
     "@gluestack-ui/toast": "^1.0.9",
     "@gluestack-ui/tooltip": "^0.1.44",
     "@legendapp/motion": "^2.4.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "babel-plugin-module-resolver": "^5.0.2",
+    "cross-env": "^10.0.0",
     "expo": "~53.0.20",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
@@ -71,7 +73,8 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
