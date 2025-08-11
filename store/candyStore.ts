@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface CandyProps {
     count: number;
@@ -15,11 +17,21 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
         count: 0,
     };
 
-    return create<CandyState & CandyProps>((set) => ({
-        ...defaultProps,
-        ...initProps,
-        increment: () => set((prev) => ({ ...prev, count: prev.count + 1 })),
-    }));
+    return create<CandyProps & CandyState>()(
+        persist(
+            (set) => ({
+                ...defaultProps,
+                ...initProps,
+                increment: () => set((prev) => ({ ...prev, count: prev.count + 1 })),
+            }),
+            {
+                name: 'candy-storage',
+                storage: createJSONStorage(() => AsyncStorage),
+                partialize: (state) => ({
+                }),
+            }
+        )
+    );
 }
 
 export const candyStore = CreateCandyAppStore();
