@@ -6,6 +6,15 @@ export interface CandyProps {
     count: number;
 }
 
+export interface RoutineTask {
+    id: string;
+    label: string;
+    isFavorite: boolean;
+    
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export interface CandyState extends CandyProps {
     increment: () => void;
 }
