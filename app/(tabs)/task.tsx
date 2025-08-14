@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { FlatList, Pressable, TouchableOpacity, View } from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Checkbox, CheckboxIcon, CheckboxIndicator, CheckboxLabel } from '@/components/ui/checkbox';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedView } from '@/components/ThemedView';
 import { Box } from '@/components/ui/box';
-import { CheckIcon } from '@/components/ui/icon';
-import { Card } from '@/components/ui/card';
-import { Fab, FabIcon, FabLabel } from '@/components/ui/fab';
 import { Button, ButtonText } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Checkbox, CheckboxIcon, CheckboxIndicator, CheckboxLabel } from '@/components/ui/checkbox';
+import { Divider } from '@/components/ui/divider';
+import { Fab } from '@/components/ui/fab';
 import { Heading } from '@/components/ui/heading';
+import { CheckIcon } from '@/components/ui/icon';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import React, { useState } from 'react';
+import { FlatList, TouchableOpacity, View, Text } from 'react-native';
 
 type Task = {
   id: string;
@@ -63,6 +64,55 @@ const RoutineTask: React.FC<RoutineTaskProps> = ({ task, onToggle, onToggleFavor
   );
 };
 
+const FilterTask: React.FC<{}> = () => {
+
+  const [dates, setDates] = useState<string[]>(["Today", "Yesterday", "Other"]);
+  const [selectedDate, setSelectedDate] = useState<string>("Today");
+
+  const onSelectItem = (name: string) => {
+    let onDate = new Date();
+
+    switch (name) {
+      case "Today":
+        // Handle Today selection
+        setSelectedDate(name);
+        break;
+      case "Yesterday":
+        // Handle Yesterday selection
+        onDate.setDate(onDate.getDate() - 1);
+        setSelectedDate(name);
+        break;
+      case "Other":
+        // Handle Other selection
+        break;
+    }
+
+    // Handle date filtering
+  }
+
+  return (
+    <Box className='flex-row items-center'>
+      <FlatList
+        data={dates}
+        renderItem={({ item }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            action={item === selectedDate ? 'primary' : 'secondary'}
+            onPress={() => onSelectItem(item)}
+            className="mr-2 rounded-full"
+          >
+            <ButtonText>{item}</ButtonText>
+          </Button>
+        )}
+        keyExtractor={item => item}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      />
+    </Box>
+  );
+};
+
 export default function TaskScreen() {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks.map(t => ({ ...t, isDone: false })));
   const [showModal, setShowModal] = useState(false)
@@ -100,6 +150,8 @@ export default function TaskScreen() {
 
   return (
     <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'bg-primary-100' }}>
+      <FilterTask />
+      <Divider className='my-2'/> 
       <FlatList
         data={tasks}
         renderItem={({ item }) => (
