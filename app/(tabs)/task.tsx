@@ -11,8 +11,9 @@ import { CheckIcon } from '@/components/ui/icon';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
-import { FlatList, TouchableOpacity, View, Text } from 'react-native';
+import { FlatList, TouchableOpacity } from 'react-native';
 
 type Task = {
   id: string;
@@ -38,36 +39,51 @@ const RoutineTask: React.FC<RoutineTaskProps> = ({ task, onToggle, onToggleFavor
     <Card className='bg-white my-1'>
       <TouchableOpacity onPress={() => onToggle(task.id)}>
         <Box className="flex-row items-center">
-        <Checkbox
-          value={task.id}
-          isChecked={task.isDone ? true : false}
-          onChange={() => onToggle(task.id)}
-          aria-label={task.label}
-        >
-          <CheckboxIndicator className="rounded-full">
-            <CheckboxIcon as={CheckIcon} />
-          </CheckboxIndicator>
-          <CheckboxLabel />
-        </Checkbox>
-        <ThemedText
-          className={`ml-2 flex-1 ${task.isDone ? 'line-through text-gray-500' : ''
-            }`}
-        >
-          {task.label}
-        </ThemedText>
-        <TouchableOpacity onPress={() => onToggleFavorite(task.id)}>
-          <IconSymbol name="star.fill" color={task.isFavorite ? 'gold' : 'gray'} style={{ marginLeft: 'auto' }}/>
-        </TouchableOpacity>
-      </Box>
+          <Checkbox
+            value={task.id}
+            isChecked={task.isDone ? true : false}
+            onChange={() => onToggle(task.id)}
+            aria-label={task.label}
+          >
+            <CheckboxIndicator className="rounded-full">
+              <CheckboxIcon as={CheckIcon} />
+            </CheckboxIndicator>
+            <CheckboxLabel />
+          </Checkbox>
+          <ThemedText
+            className={`ml-2 flex-1 ${task.isDone ? 'line-through text-gray-500' : ''
+              }`}
+          >
+            {task.label}
+          </ThemedText>
+          <TouchableOpacity onPress={() => onToggleFavorite(task.id)}>
+            <IconSymbol name="star.fill" color={task.isFavorite ? 'gold' : 'gray'} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        </Box>
       </TouchableOpacity>
     </Card>
   );
 };
 
+const DATE_NAME_DEFAULT_OPTIONS = ["Today", "Yesterday", "Other"];
+
 const FilterTask: React.FC<{}> = () => {
 
-  const [dates, setDates] = useState<string[]>(["Today", "Yesterday", "Other"]);
+  const [dateNames, setDateNames] = useState<string[]>(DATE_NAME_DEFAULT_OPTIONS);
   const [selectedDate, setSelectedDate] = useState<string>("Today");
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const onDatePickerChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (event.type !== 'dismissed' && selectedDate) {
+      setDate(selectedDate);
+
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setDateNames(prevDates => [...prevDates.slice(0, prevDates.length - 1), dateString]);
+      setSelectedDate(dateString);
+    }
+  };
 
   const onSelectItem = (name: string) => {
     let onDate = new Date();
@@ -76,14 +92,16 @@ const FilterTask: React.FC<{}> = () => {
       case "Today":
         // Handle Today selection
         setSelectedDate(name);
+        setDateNames(DATE_NAME_DEFAULT_OPTIONS);
         break;
       case "Yesterday":
         // Handle Yesterday selection
         onDate.setDate(onDate.getDate() - 1);
         setSelectedDate(name);
+        setDateNames(DATE_NAME_DEFAULT_OPTIONS);
         break;
-      case "Other":
-        // Handle Other selection
+      default:
+        setShowDatePicker(true);
         break;
     }
 
@@ -92,8 +110,17 @@ const FilterTask: React.FC<{}> = () => {
 
   return (
     <Box className='flex-row items-center'>
+      {showDatePicker && (
+        <DateTimePicker
+          testID="dateTimePicker"
+          value={date}
+          mode={'date'}
+          is24Hour={true}
+          onChange={onDatePickerChange}
+        />
+      )}
       <FlatList
-        data={dates}
+        data={dateNames}
         renderItem={({ item }) => (
           <Button
             size="sm"
@@ -149,9 +176,9 @@ export default function TaskScreen() {
   };
 
   return (
-    <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'bg-primary-100' }}>
+    <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'bg-primary-50' }}>
       <FilterTask />
-      <Divider className='my-2'/> 
+      <Divider className='my-2' />
       <FlatList
         data={tasks}
         renderItem={({ item }) => (
