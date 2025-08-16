@@ -12,6 +12,7 @@ import { CheckIcon } from '@/components/ui/icon';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
+import { RoutineTaskService } from '@/services/routineTaskService';
 import { useCandyContext } from '@/store/context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -25,11 +26,6 @@ type Task = {
   isDone?: boolean;
 };
 
-const sampleTasks: Task[] = [
-  { id: '1', label: 'Morning Coffee', isFavorite: true },
-  { id: '2', label: 'Workout', isFavorite: false },
-  { id: '3', label: 'Read a book', isFavorite: true },
-];
 
 type RoutineTaskProps = {
   task: Task;
@@ -97,37 +93,43 @@ RoutineTask.displayName = 'RoutineTask';
 
 const DATE_NAME_DEFAULT_OPTIONS = ["Today", "Yesterday", "Other"];
 
-const FilterTask: React.FC<{}> = () => {
+
+interface FilterTaskProps {
+  selectedDate: Date | null;
+  onSelectedDateChange: (date: Date | null) => void;
+}
+const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateChange }) => {
 
   const [dateNames, setDateNames] = useState<string[]>(DATE_NAME_DEFAULT_OPTIONS);
-  const [selectedDate, setSelectedDate] = useState<string>("Today");
-  const [date, setDate] = useState(new Date());
+  const [selectedDateName, setSelectedDateName] = useState<string>("Today");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const onDatePickerChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (event.type !== 'dismissed' && selectedDate) {
-      setDate(selectedDate);
+      onSelectedDateChange(selectedDate);
 
       const dateString = selectedDate.toISOString().split('T')[0];
       setDateNames(prevDates => [...prevDates.slice(0, prevDates.length - 1), dateString]);
-      setSelectedDate(dateString);
+      setSelectedDateName(dateString);
     }
   };
 
   const onSelectItem = (name: string) => {
-    let onDate = new Date();
+    const onDate = new Date();
 
     switch (name) {
       case "Today":
         // Handle Today selection
-        setSelectedDate(name);
+        setSelectedDateName(name);
         setDateNames(DATE_NAME_DEFAULT_OPTIONS);
+        onSelectedDateChange(onDate)
         break;
       case "Yesterday":
         // Handle Yesterday selection
         onDate.setDate(onDate.getDate() - 1);
-        setSelectedDate(name);
+        onSelectedDateChange(onDate);
+        setSelectedDateName(name);
         setDateNames(DATE_NAME_DEFAULT_OPTIONS);
         break;
       default:
@@ -143,7 +145,7 @@ const FilterTask: React.FC<{}> = () => {
       {showDatePicker && (
         <DateTimePicker
           testID="dateTimePicker"
-          value={date}
+          value={selectedDate || new Date()}
           mode={'date'}
           is24Hour={true}
           onChange={onDatePickerChange}
@@ -155,7 +157,7 @@ const FilterTask: React.FC<{}> = () => {
           <Button
             size="sm"
             variant="outline"
-            action={item === selectedDate ? 'primary' : 'secondary'}
+            action={item === selectedDateName ? 'primary' : 'secondary'}
             onPress={() => onSelectItem(item)}
             className="mr-2 rounded-full"
           >
@@ -177,6 +179,7 @@ export default function TaskScreen() {
   const [isConfirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const openRowRef = useRef<Swipeable | null>(null);
+  const [filteredOnDate, setFilteredOnDate] = useState<Date | null>(new Date());
 
   // Call useCandyContext at the top level of the component, not inside useEffect
   const routineTasks = useCandyContext(state => state.routineTasks);
@@ -184,13 +187,13 @@ export default function TaskScreen() {
   const deleteRoutineTask = useCandyContext(state => state.deleteRoutineTask);
 
   useEffect(() => {
-    setTasks(routineTasks.map(task => ({
+    setTasks(RoutineTaskService.getFilteredRoutineTasks(routineTasks, filteredOnDate).map(task => ({
       id: task.id,
       label: task.label,
       isFavorite: task.isFavorite,
       isDone: false,
     })));
-  }, [routineTasks]);
+  }, [routineTasks, filteredOnDate]);
 
   const handleToggleTask = (taskId: string) => {
     setTasks(prevTasks =>
@@ -276,7 +279,7 @@ export default function TaskScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'bg-primary-50' }}>
-        <FilterTask />
+        <FilterTask selectedDate={filteredOnDate} onSelectedDateChange={setFilteredOnDate} />
         <Divider className='my-2' />
         <FlatList
           data={tasks}
