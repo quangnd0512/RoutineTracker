@@ -1,3 +1,4 @@
+import ConfirmDelete from '@/components/ConfirmDelete';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Box } from '@/components/ui/box';
@@ -11,9 +12,9 @@ import { CheckIcon } from '@/components/ui/icon';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
-import ConfirmDelete from '@/components/ConfirmDelete';
+import { useCandyContext } from '@/store/context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
@@ -170,12 +171,26 @@ const FilterTask: React.FC<{}> = () => {
 };
 
 export default function TaskScreen() {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks.map(t => ({ ...t, isDone: false })));
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [showModal, setShowModal] = useState(false)
   const [taskLabel, setTaskLabel] = useState('');
   const [isConfirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const openRowRef = useRef<Swipeable | null>(null);
+
+  // Call useCandyContext at the top level of the component, not inside useEffect
+  const routineTasks = useCandyContext(state => state.routineTasks);
+  const addRoutineTask = useCandyContext(state => state.addRoutineTask);
+  const deleteRoutineTask = useCandyContext(state => state.deleteRoutineTask);
+
+  useEffect(() => {
+    setTasks(routineTasks.map(task => ({
+      id: task.id,
+      label: task.label,
+      isFavorite: task.isFavorite,
+      isDone: false,
+    })));
+  }, [routineTasks]);
 
   const handleToggleTask = (taskId: string) => {
     setTasks(prevTasks =>
@@ -201,7 +216,15 @@ export default function TaskScreen() {
         isFavorite: false,
         isDone: false,
       };
-      setTasks(prevTasks => [...prevTasks, newTask]);
+      addRoutineTask({
+        id: newTask.id,
+        label: newTask.label,
+        isFavorite: newTask.isFavorite,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      });
+
       setTaskLabel('');
       setShowModal(false);
     }
@@ -214,7 +237,8 @@ export default function TaskScreen() {
 
   const handleDeleteTask = () => {
     if (taskToDelete) {
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskToDelete));
+      deleteRoutineTask(taskToDelete);
+
       setTaskToDelete(null);
       setConfirmDeleteVisible(false);
     }
