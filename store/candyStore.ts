@@ -20,6 +20,7 @@ export interface CandyState extends CandyProps {
     increment: () => void;
     addRoutineTask: (task: RoutineTask) => void;
     deleteRoutineTask: (taskId: string) => void;
+    updateRoutineTask: (taskId: string, updatedTask: Partial<RoutineTask>) => void;
 }
 
 export type CandyStore = ReturnType<typeof CreateCandyAppStore>
@@ -46,6 +47,12 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
                             task.id === taskId
                                 ? { ...task, deletedAt: new Date() }
                                 : task
+                        ),
+                    })),
+                updateRoutineTask: (taskId: string, updatedTask: Partial<RoutineTask>) =>
+                    set((state) => ({
+                        routineTasks: state.routineTasks.map((task) =>
+                            task.id === taskId ? { ...task, ...updatedTask } : task
                         ),
                     }))
             }),

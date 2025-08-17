@@ -185,31 +185,51 @@ export default function TaskScreen() {
   const routineTasks = useCandyContext(state => state.routineTasks);
   const addRoutineTask = useCandyContext(state => state.addRoutineTask);
   const deleteRoutineTask = useCandyContext(state => state.deleteRoutineTask);
+  const updateRoutineTask = useCandyContext(state => state.updateRoutineTask);
 
   useEffect(() => {
-    setTasks(RoutineTaskService.getFilteredRoutineTasks(routineTasks, filteredOnDate).map(task => ({
-      id: task.id,
-      label: task.label,
-      isFavorite: task.isFavorite,
-      isDone: false,
-    })));
+    RoutineTaskService.getFilteredRoutineTasks(routineTasks, filteredOnDate).then(filteredTasks => {
+      setTasks(filteredTasks.map(task => ({
+        id: task.id,
+        label: task.label,
+        isFavorite: task.isFavorite,
+        isDone: task.isDone || false, // Ensure isDone is always a boolean
+      })));
+    });
   }, [routineTasks, filteredOnDate]);
 
-  const handleToggleTask = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, isDone: !task.isDone } : task
-      )
-    );
-  };
+  const handleToggleTask = React.useCallback(async (taskId: string) => {
+    console.log(`[TaskScreen] Toggling task: ${taskId}`);
+    // Find the task to toggle
+    const task = tasks.find(t => t.id === taskId);
+    console.log(`[TaskScreen] Tasks:`, tasks);
+    console.log(`[TaskScreen] Task found:`, task);
+    if (!task) return;
 
-  const handleToggleFavorite = (taskId: string) => {
+    // Perform the async side effect
+    if (task.isDone) {
+      await RoutineTaskService.deleteFinishedRoutineTask(filteredOnDate || new Date(), taskId);
+    } else {
+      await RoutineTaskService.markFinishedRoutineTask(filteredOnDate || new Date(), taskId);
+    }
+
+    // Update the state synchronously
     setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, isFavorite: !task.isFavorite } : task
+      prevTasks.map(t =>
+        t.id === taskId ? { ...t, isDone: !t.isDone } : t
       )
     );
-  };
+  }, [tasks, filteredOnDate]);
+
+  const handleToggleFavorite = useCallback((taskId: string) => {
+    updateRoutineTask(taskId, { isFavorite: !tasks.find(task => task.id === taskId)?.isFavorite });
+    
+    // setTasks(prevTasks =>
+    //   prevTasks.map(task =>
+    //     task.id === taskId ? { ...task, isFavorite: !task.isFavorite } : task
+    //   )
+    // );
+  }, [tasks, updateRoutineTask]);
 
   const handleAddTask = () => {
     if (taskLabel.trim() !== '') {
@@ -274,7 +294,7 @@ export default function TaskScreen() {
         onClose={handleClose}
       />
     );
-  }, []);
+  }, [handleToggleFavorite, handleToggleTask]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
