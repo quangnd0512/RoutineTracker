@@ -29,6 +29,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Generate native project
+        run: npx expo prebuild --platform android --no-install
+
       - name: Build Android APK
         run: cd android && ./gradlew assembleRelease
 
