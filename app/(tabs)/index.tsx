@@ -9,12 +9,51 @@ import { LineChart } from "react-native-chart-kit";
 
 
 const MonthlyCalendar = () => {
+  const [markFinishedDates, setMarkFinishedDates ] = useState<string[]>([])
 
-  const markedDates = {
-    '2025-08-27': { marked: true },
-    '2025-08-28': { marked: true }
+  async function fetchFinishedDates(onDate: Date | null = null) {
+    let markDate = new Date();
+    if (onDate) {
+      markDate = onDate;
+    }
+
+    const TaskDates = [];
+    for (let i = 1; i <= 31; i++) {
+      const date = new Date(markDate);
+      date.setDate(i);
+      TaskDates.push(RoutineTaskService.getFinishedRoutineTasks(date));
+    }
+
+    const results = await Promise.all(TaskDates);
+    const finishedDates = results.map((res, index) => {
+      if (res.length > 0) {
+        const date = new Date(markDate);
+        date.setDate(index + 1);
+        return date.toISOString().split("T")[0];
+      }
+      return null;
+    }).filter(date => date !== null);
+
+    setMarkFinishedDates(finishedDates);
+  }
+
+  const memoizedFetchFinishedDates = useCallback(() => {
+    fetchFinishedDates();
+
+    return () => {
+      setMarkFinishedDates([]);
+    };
+  }, []);
+
+  useFocusEffect(memoizedFetchFinishedDates);
+
+  const markedDates: { [date: string]: { marked: boolean } } = {
+    // '2025-08-27': { marked: true },
+    // '2025-08-28': { marked: true }
   };
-
+  for (const date of markFinishedDates) {
+    markedDates[date] = { marked: true };
+  }
 
   return (
     <View className="px-3">
@@ -40,7 +79,7 @@ const MonthlyCalendar = () => {
           );
         }}
         onMonthChange={(month) => {
-          console.log("Month changed to:", month);
+          fetchFinishedDates(new Date(month.dateString));
         }}
       />
     </View>
