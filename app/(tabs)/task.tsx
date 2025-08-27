@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import log from '@/services/logger';
 
 type Task = {
   id: string;
@@ -199,11 +200,11 @@ export default function TaskScreen() {
   }, [routineTasks, filteredOnDate]);
 
   const handleToggleTask = React.useCallback(async (taskId: string) => {
-    console.log(`[TaskScreen] Toggling task: ${taskId}`);
+    log.info(`[TaskScreen] Toggling task: ${taskId}`);
     // Find the task to toggle
     const task = tasks.find(t => t.id === taskId);
-    console.log(`[TaskScreen] Tasks:`, tasks);
-    console.log(`[TaskScreen] Task found:`, task);
+    log.info(`[TaskScreen] Tasks:`, tasks);
+    log.info(`[TaskScreen] Task found:`, task);
     if (!task) return;
 
     // Perform the async side effect
