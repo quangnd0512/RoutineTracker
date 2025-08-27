@@ -1,75 +1,105 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import CircleCheckIcon from "@/components/icons/CircleCheckIcon";
+import { Dimensions, View, Text } from "react-native";
+import { Calendar } from "react-native-calendars";
+import { LineChart } from "react-native-chart-kit";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+
+const MonthlyCalendar = () => {
+
+  const markedDates = {
+    '2025-08-27': { marked: true },
+    '2025-08-28': { marked: true }
+  };
+
+
+  return (
+    <View className="px-3">
+      <View className="items-center justify-center my-3">
+        <Text className="font-bold">Monthly Activity</Text>
+      </View>
+      <Calendar
+        markedDates={markedDates}
+        dayComponent={({ date, marking, state }) => {
+          const isMarked = marking?.marked;
+          return (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ color: state === 'disabled' ? 'gray' : 'black' }}>
+                {date?.day}
+              </Text>
+              {isMarked && (
+                <View className="absolute top-0 right-0">
+                  <CircleCheckIcon />
+                </View>
+              )}
+            </View>
+          );
+        }}
+        onMonthChange={(month) => {
+          console.log("Month changed to:", month);
+        }}
+      />
+    </View>
+  );
+};
+
+const WeeklyChart = () => {
+  // Sample data for the line chart
+  const data = {
+    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    datasets: [
+      {
+        data: [
+          0,
+          7,
+          9,
+          10,
+          11,
+          1,
+        ],
+      },
+    ],
+  };
+
+  return (
+    <View className="items-center justify-center mb-5 mt-3">
+      <Text className="font-bold my-3">Weekly Activity</Text>
+      <LineChart
+        data={data}
+        width={Dimensions.get("window").width - 20} // from react-native
+        height={220}
+        yAxisInterval={1} // optional, defaults to 1
+        chartConfig={{
+          backgroundColor: "black",
+          backgroundGradientFrom: "#ffffff",
+          backgroundGradientTo: "#ffffff",
+          decimalPlaces: 0, // optional, defaults to 2dp
+          color: (opacity = 1) => `rgba(174, 227, 253, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          style: {
+            borderRadius: 16,
+          },
+          barPercentage: 1,
+          // propsForDots: {
+          //   r: "6",
+          //   strokeWidth: "2",
+          //   stroke: "#ffa726",
+          // },
+        }}
+        style={{
+          backgroundColor: "black",
+          borderRadius: 5
+        }}
+      />
+    </View>
+  )
+}
+
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <>
+      <WeeklyChart />
+      <MonthlyCalendar />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
