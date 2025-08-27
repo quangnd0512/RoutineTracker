@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        run: yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses && $ANDROID_HOME/tools/bin/sdkmanager "build-tools;34.0.0" "platforms;android-34" "system-images;android-34;google_apis;x86_64"
+        uses: android-actions/setup-android@v3
 
       - name: Build Android APK
         run: cd android && ./gradlew assembleRelease
