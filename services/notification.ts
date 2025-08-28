@@ -3,6 +3,7 @@ import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import { Platform } from 'react-native';
 import { candyStore } from '../store/candyStore';
 import { RoutineTaskService } from './routineTaskService';
+import log from './logger';
 
 export const setupNotificationHandler = async () => {
   // 1. Set notification handler
@@ -28,6 +29,36 @@ export const setupNotificationHandler = async () => {
       lightColor: '#FF231F7C',
     });
   }
+
+  // 4. Set notification category
+  await Notifications.setNotificationCategoryAsync('routine-task-actions', [
+    {
+      identifier: 'finish',
+      buttonTitle: 'Finish',
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+    {
+      identifier: 'ignore',
+      buttonTitle: 'Ignore',
+      options: {
+        opensAppToForeground: false,
+      },
+    },
+  ]);
+
+  // 5. Add notification response listener
+  Notifications.addNotificationResponseReceivedListener(response => {
+    const actionIdentifier = response.actionIdentifier;
+    const taskId = response.notification.request.content.data.taskId as string;
+
+    if (actionIdentifier === 'finish') {
+      RoutineTaskService.finishRoutineTask(taskId);
+    } else if (actionIdentifier === 'ignore') {
+      log.info(`Ignore action handled for task: ${taskId}`);
+    }
+  });
 };
 
 export const scheduleNotificationsForRoutineTasks = async () => {
@@ -49,12 +80,14 @@ export const scheduleNotificationsForRoutineTasks = async () => {
           title: "Routine Task Reminder",
           body: task.label,
           data: { taskId: task.id },
+          categoryIdentifier: 'routine-task-actions',
         },
-        trigger: { type: SchedulableTriggerInputTypes.CALENDAR, hour: 8, minute: 0, repeats: true },
+        // trigger: { type: SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, repeats: true },
+        trigger: { type: SchedulableTriggerInputTypes.DAILY, hour: 8, minute: 0 },
       });
-      console.log(`Notification scheduled for task: ${task.label}`);
+      log.info(`Notification scheduled for task: ${task.label}`);
     } catch (error) {
-      console.error(`Failed to schedule notification for task: ${task.label}`, error);
+      log.error(`Failed to schedule notification for task: ${task.label}`, error);
     }
   }
 };
@@ -72,7 +105,7 @@ export async function registerForPushNotificationsAsync() {
     return;
   }
   token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log(token);
+  log.info(`Push token generated: ${token}`);
 
   return token;
 }

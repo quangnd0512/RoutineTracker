@@ -75,4 +75,10 @@ export class RoutineTaskService {
             return [];
         }
     }
+
+    public static async finishRoutineTask(taskId: string): Promise<void> {
+        log.info(`[RoutineTaskService] Finishing routine task: ${taskId}`);
+        const onDate = new Date();
+        await this.markFinishedRoutineTask(onDate, taskId);
+    }
 }
