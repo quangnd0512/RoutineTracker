@@ -19,7 +19,17 @@ jobs:
         with:
           node-version: 20
 
+      - name: Cache node modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
 
       - name: Set up Java
@@ -31,20 +41,25 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate native project
-        run: npx expo prebuild --platform android --no-install
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-{{ hashFiles('**/*.gradle*') }}-{{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
 
-      - name: Build Android APK
-        run: cd android && ./gradlew assembleRelease
+      - name: Prebuild and Build Android APK
+        run: npx expo prebuild --platform android --no-install && cd android && ./gradlew assembleRelease
       
       - name: Rename APK
-        run: mv android/app/build/outputs/apk/release/app-release.apk RoutineTracker-v${{ github.ref_name }}.apk
+        run: mv android/app/build/outputs/apk/release/app-release.apk RoutineTracker-${{ github.ref_name }}.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           name: "Routine Tracker: ${{ github.ref_name }}"
           tag_name: ${{ github.ref_name }}
-          files: RoutineTracker-v${{ github.ref_name }}.apk
+          files: RoutineTracker-${{ github.ref_name }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
