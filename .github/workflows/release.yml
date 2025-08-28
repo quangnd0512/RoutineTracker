@@ -36,11 +36,15 @@ jobs:
 
       - name: Build Android APK
         run: cd android && ./gradlew assembleRelease
+      
+      - name: Rename APK
+        run: mv android/app/build/outputs/apk/release/app-release.apk RoutineTracker-v${{ github.ref_name }}.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          files: android/app/build/outputs/apk/release/app-release.apk
+          name: "Routine Tracker: ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          files: RoutineTracker-v${{ github.ref_name }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
