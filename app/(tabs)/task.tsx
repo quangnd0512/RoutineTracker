@@ -8,8 +8,7 @@ import { Checkbox, CheckboxIcon, CheckboxIndicator, CheckboxLabel } from '@/comp
 import { Divider } from '@/components/ui/divider';
 import { Fab } from '@/components/ui/fab';
 import { Heading } from '@/components/ui/heading';
-import { CheckIcon } from '@/components/ui/icon';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { CheckIcon, Icon } from '@/components/ui/icon';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { RoutineTaskService } from '@/services/routineTaskService';
@@ -19,6 +18,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import log from '@/services/logger';
+import { PlusIcon, XIcon } from 'lucide-react-native';
+import StarIcon from '@/components/icons/StarIcon';
 
 type Task = {
   id: string;
@@ -82,7 +83,7 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
               {task.label}
             </ThemedText>
             <TouchableOpacity onPress={() => onToggleFavorite(task.id)}>
-              <IconSymbol name="star.fill" color={task.isFavorite ? 'gold' : 'gray'} style={{ marginLeft: 'auto' }} />
+              <StarIcon color={task.isFavorite ? 'gold' : 'gray'} />
             </TouchableOpacity>
           </Box>
         </TouchableOpacity>
@@ -315,7 +316,7 @@ export default function TaskScreen() {
           placement="bottom right"
           onPress={() => setShowModal(true)}
         >
-          <IconSymbol name="plus.app.fill" color="white" />
+          <Icon as={PlusIcon} className='text-white' />
         </Fab>
         <Modal
           isOpen={showModal}
@@ -329,7 +330,7 @@ export default function TaskScreen() {
             <ModalHeader>
               <Heading size="lg" className=''>New Task</Heading>
               <ModalCloseButton>
-                <IconSymbol name="xmark.circle.fill" color="gray" />
+                <Icon as={XIcon} className='text-gray-500'/>
               </ModalCloseButton>
             </ModalHeader>
             <ModalBody>

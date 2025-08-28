@@ -3,13 +3,18 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Icon } from '@/components/ui/icon';
+import { HouseIcon, ListChecksIcon, SendHorizonalIcon } from 'lucide-react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+
+  const colorStyle = (focused: boolean) => {
+    return focused ? "text-[#0a7ea4]" : "text-[#8E8E8F]";
+  }
 
   return (
     <Tabs
@@ -31,7 +36,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           headerShown: true,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ focused }) => <Icon as={HouseIcon} className={colorStyle(focused)} />,
         }}
       />
       <Tabs.Screen
@@ -39,14 +44,15 @@ export default function TabLayout() {
         options={{
           title: 'Routine Tasks',
           headerShown: true,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="checkmark.seal.fill" color={color} />,
+          tabBarIcon: ({ focused }) => <Icon as={ListChecksIcon} className={colorStyle(focused)} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          headerShown: true,
+          tabBarIcon: ({ focused }) => <Icon as={SendHorizonalIcon} className={colorStyle(focused)} />,
         }}
       />
     </Tabs>
