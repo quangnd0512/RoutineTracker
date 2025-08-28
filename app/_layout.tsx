@@ -8,8 +8,9 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { CandyContext } from "@/store/context";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { candyStore } from "@/store/candyStore";
+import { scheduleNotificationsForRoutineTasks, setupNotificationHandler } from "@/services/notification";
 
 type CandyProviderProps = React.PropsWithChildren<{}>;
 
@@ -30,6 +31,19 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    if (loaded) {
+      setupNotificationHandler();
+      const unsubscribe = candyStore.subscribe(() => {
+        scheduleNotificationsForRoutineTasks();
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [loaded]);
 
   if (!loaded) {
     // Async font loading only occurs in development.
