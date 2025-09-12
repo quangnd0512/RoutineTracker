@@ -1,15 +1,17 @@
 import CircleCheckIcon from "@/components/icons/CircleCheckIcon";
+import { Divider } from "@/components/ui/divider";
+import { Heading } from "@/components/ui/heading";
 import log from "@/services/logger";
 import { RoutineTaskService } from "@/services/routineTaskService";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { LineChart } from "react-native-chart-kit";
+import { BarChart } from "react-native-gifted-charts";
 
 
 const MonthlyCalendar = () => {
-  const [markFinishedDates, setMarkFinishedDates ] = useState<string[]>([])
+  const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([])
 
   async function fetchFinishedDates(onDate: Date | null = null) {
     let markDate = new Date();
@@ -88,7 +90,7 @@ const MonthlyCalendar = () => {
 
 const WeeklyChart = () => {
   const [taskCounts, setTaskCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
-  
+
   async function fetchTasks() {
     const _now = new Date();
     let weekDay = _now.getDay(); // 0 (Sun) to 6 (Sat)
@@ -126,46 +128,46 @@ const WeeklyChart = () => {
 
   useFocusEffect(memoizedFetchTasks);
 
-  // Sample data for the line chart
-  const data = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        data: taskCounts,
-      },
-    ],
-  };
+  return (
+    <BarChartView taskCounts={taskCounts} />
+  )
+}
+
+const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
+  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  const barData = taskCounts.map((count, index) => {
+    return {
+      value: count,
+      frontColor: '#c5c4f4',
+      label: labels[index],
+      labelTextStyle: { color: 'gray' }
+    }
+  });
 
   return (
-    <View className="items-center justify-center mb-5 mt-3">
-      <Text className="font-bold my-3">Weekly Activity</Text>
-      <LineChart
-        data={data}
-        width={Dimensions.get("window").width - 20} // from react-native
-        height={220}
-        yAxisInterval={1} // optional, defaults to 1
-        chartConfig={{
-          backgroundColor: "black",
-          backgroundGradientFrom: "#ffffff",
-          backgroundGradientTo: "#ffffff",
-          decimalPlaces: 0, // optional, defaults to 2dp
-          color: (opacity = 1) => `rgba(174, 227, 253, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          style: {
-            borderRadius: 16,
-          },
-          barPercentage: 1,
-          // propsForDots: {
-          //   r: "6",
-          //   strokeWidth: "2",
-          //   stroke: "#ffa726",
-          // },
-        }}
-        style={{
-          backgroundColor: "black",
-          borderRadius: 5
-        }}
-      />
+    <View className="flex-1 mb-5 mt-3 px-2">
+      <View className="bg-white rounded-lg">
+        <View className="px-2">
+          <View className="py-4">
+            <Heading>Tasks Completed</Heading>
+          </View>
+          <Divider className="bg-gray-100" />
+        </View>
+        <View className="items-center justify-center py-4">
+          <BarChart
+            data={barData}
+            frontColor="#177AD5"
+            backgroundColor="transparent"
+            yAxisThickness={0}
+            xAxisThickness={0}
+            spacing={10}
+            noOfSections={5}
+            barBorderTopLeftRadius={15}
+            barBorderTopRightRadius={15}
+            yAxisTextStyle={{ color: 'gray' }}
+          />
+        </View>
+      </View>
     </View>
   )
 }
