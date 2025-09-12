@@ -129,7 +129,7 @@ const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
       break;
 
     case 'progress_calendar':
-      chartComponent = <CalendarView markFinishedDates={data.markFinishedDates ?? []} onMonthChange={data.onMonthChange} />;
+      chartComponent = <View className="pb-2"><CalendarView markFinishedDates={data.markFinishedDates ?? []} onMonthChange={data.onMonthChange} /></View>;
       break;
 
     default:
@@ -145,7 +145,7 @@ const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
     <>
       <View className="flex-1 mb-5 mt-3 px-2">
         <View className="bg-white rounded-lg">
-          <View className="px-2">
+          <View className="px-3">
             <View className="flex-row items-center justify-between py-3">
               <View className="py-4">
                 <Heading>{title}</Heading>
@@ -212,8 +212,10 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       backgroundColor="transparent"
       yAxisThickness={0}
       xAxisThickness={0}
+      initialSpacing={0}
       spacing={10}
-      noOfSections={5}
+      noOfSections={3}
+      maxValue={Math.max(...taskCounts) + 3 < 5 ? 5 : Math.max(...taskCounts) + 3}
       barBorderTopLeftRadius={15}
       barBorderTopRightRadius={15}
       yAxisTextStyle={{ color: 'gray' }}
@@ -240,8 +242,6 @@ interface CalendarViewProps {
 }
 
 const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) => {
-  const [onDate, setOnDate] = useState(new Date());
-
   const markedDates: { [date: string]: { marked: boolean } } = {
     // '2025-08-27': { marked: true },
     // '2025-08-28': { marked: true }
@@ -254,15 +254,36 @@ const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) =
     <Calendar
       className="rounded-lg"
       theme={{
+        'stylesheet.calendar.header': {
+          dayTextAtIndex0: {
+            color: 'black'
+          },
+          dayTextAtIndex1: {
+            color: 'black'
+          },
+          dayTextAtIndex2: {
+            color: 'black'
+          },
+          dayTextAtIndex3: {
+            color: 'black'
+          },
+          dayTextAtIndex4: {
+            color: 'black'
+          },
+          dayTextAtIndex5: {
+            color: 'black'
+          },
+          dayTextAtIndex6: {
+            color: 'black'
+          }
+        },
         textMonthFontWeight: 'bold',
         textDayFontWeight: 'bold',
         dayTextColor: 'black',
+        textDayHeaderFontWeight: 'bold',
       }}
-      // headerStyle={{
-      //   backgroundColor: '#f6f6f6',
-      // }}
       renderArrow={(direction) =>
-        direction === 'left' ? <View style={{ transform: [{ translateX: -10 }] }}><ChevronLeftIcon /></View> : <View style={{ transform: [{ translateX: 10 }] }}><ChevronRightIcon /></View>
+        direction === 'left' ? <View style={{ transform: [{ translateX: -15 }] }}><ChevronLeftIcon /></View> : <View style={{ transform: [{ translateX: 15 }] }}><ChevronRightIcon /></View>
       }
       markedDates={markedDates}
       dayComponent={({ date, marking, state }) => {
@@ -277,7 +298,6 @@ const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) =
       }}
       onMonthChange={(month) => {
         onMonthChange && onMonthChange(new Date(month.dateString));
-        setOnDate(new Date(month.dateString));
       }}
     />
   )
