@@ -219,7 +219,6 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       yAxisTextStyle={{ color: 'gray' }}
       rulesColor={'transparent'}
       onPress={(item: any, index: number) => {
-        console.log('Pressed bar index:', index);
         if (taskCounts[index] === 0) {
           return;
         }
