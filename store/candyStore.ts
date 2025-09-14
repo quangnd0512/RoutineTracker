@@ -6,6 +6,12 @@ export interface RoutineTask {
     id: string;
     label: string;
     isFavorite: boolean;
+    color?: string;
+    icon?: string;
+    doItAt?: 'morning' | 'afternoon' | 'evening'; // Time in HH:mm format
+    repeat?: 'daily' | 'weekly' | 'monthly';
+    repeatValues?: string[]; // e.g., ['Mon', 'Wed', 'Fri'] for weekly
+    endDate?: Date | null;
 
     createdAt?: Date;
     updatedAt?: Date;

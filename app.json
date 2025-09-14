@@ -17,7 +17,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kakavip.routinetracker"
+      "package": "com.kakavip.routinetracker",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "bundler": "metro",

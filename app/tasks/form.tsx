@@ -15,8 +15,11 @@ import { Heading } from '@/components/ui/heading';
 import { Icon } from '@/components/ui/icon';
 import { CheckIcon, XIcon } from 'lucide-react-native';
 import log from '@/services/logger';
+import { useForm, Controller } from "react-hook-form"
 import { Grid, GridItem } from '@/components/ui/grid';
 import { Checkbox, CheckboxIcon, CheckboxIndicator } from '@/components/ui/checkbox';
+import { RoutineTask } from '@/store/candyStore';
+import { useCandyContext } from '@/store/context';
 
 const COLORS = [
   '#FFFFCD',
@@ -38,74 +41,94 @@ const COLORS = [
   '#5be2f7',
 ];
 
-const ColorInput = ({ value, onSelected }: { value: string; onSelected: (color: string) => void }) => {
-  const [color, setColor] = useState(value);
+const ColorInput = ({ control, errors }: { control: any, errors: any }) => {
+
   return (
-    <Box>
-      <Heading size='lg'>Color</Heading>
-      <Grid _extra={{
-        className: 'grid-cols-5',
-      }} gap={2} className='gap-4 my-4'>
-        {COLORS.map((c) => (
-          <GridItem key={c}
-            _extra={{ className: '' }}
-          >
-            <Pressable
-              key={c}
-              onPress={() => { setColor(c); onSelected(c); }}
-              style={{ backgroundColor: c }}
-              className='w-14 h-14 rounded-full justify-center items-center'
-            >
-              {color === c && (
-                <Icon
-                  as={CheckIcon}
-                  className='w-8 h-8'
-                />
-              )}
-            </Pressable>
-          </GridItem>
-        ))}
-      </Grid>
-    </Box>
+    <Controller
+      control={control}
+      name="color"
+      render={({ field: { onChange, value } }) => (
+        <Box>
+          <Heading size='lg'>Color</Heading>
+          <Grid _extra={{
+            className: 'grid-cols-5',
+          }} gap={2} className='gap-4 my-4'>
+            {COLORS.map((c) => (
+              <GridItem key={c}
+                _extra={{ className: '' }}
+              >
+                <Pressable
+                  key={c}
+                  onPress={() => { onChange(c); }}
+                  style={{ backgroundColor: c }}
+                  className='w-14 h-14 rounded-full justify-center items-center'
+                >
+                  {value === c && (
+                    <Icon
+                      as={CheckIcon}
+                      className='w-8 h-8'
+                    />
+                  )}
+                </Pressable>
+              </GridItem>
+            ))}
+          </Grid>
+        </Box>
+      )}
+    />
   );
 }
 
-const DoItAtInput = ({ value, onSelected }: { value: string | null; onSelected: (value: string) => void }) => {
-  const [doItAt, setDoItAt] = useState<string | null>(value);
+const DoItAtInput = ({ control, errors }: { control: any, errors: any }) => {
   const options = ['morning', 'afternoon', 'evening'];
 
+  const DoItAtView = ({ value, onChange }: { value: string | null, onChange: (value: string | null) => void }) => {
+    const [doItAt, setDoItAt] = useState<string | null>(value);
+
+    return (
+      <View>
+        <Box>
+          <Heading size='lg'>Do it at:</Heading>
+          <HStack className='gap-4 my-4'>
+            {
+              options.map((option) => (
+                <Button
+                  key={option}
+                  onPress={() => {
+                    setDoItAt(option);
+                    onChange(option);
+                  }}
+                  className={`${doItAt === option ? 'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
+                  variant={doItAt === option ? 'solid' : 'outline'}
+                  size='sm'>
+                  <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
+                </Button>
+              ))
+            }
+          </HStack>
+        </Box>
+      </View>
+    );
+  }
+
   return (
-    <Box>
-      <Heading size='lg'>Do it at:</Heading>
-      <HStack className='gap-4 my-4'>
-        {
-          options.map((option) => (
-            <Button
-              key={option}
-              onPress={() => {
-                setDoItAt(option);
-                onSelected(option);
-              }}
-              className={`${doItAt === option ? 'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
-              variant={doItAt === option ? 'solid' : 'outline'}
-              size='xl'>
-              <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
-            </Button>
-          ))
-        }
-      </HStack>
-    </Box>
+    <Controller
+      control={control}
+      name="doItAt"
+      render={({ field: { onChange, value } }) => (
+        <DoItAtView value={value} onChange={onChange} />
+      )}
+    />
   );
 }
 
-const RepeatInput = ({repeatType, repeatValues, onSelected }: { repeatType: string; repeatValues: string[]; onSelected: (repeatType: string, repeatValues: string[]) => void }) => {
-  const [repeat, setRepeat] = useState(repeatType || 'daily');
-  const [allDay, setAllDay] = useState(true);
-  const [rValues, setRepeatValues] = useState<string[]>(repeatValues || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
+  const [repeat, setRepeat] = useState('daily');
+  // const [rValues, setRepeatValues] = useState<string[]>(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
   const options = ['daily', 'weekly', 'monthly'];
 
-  return (
-    <>
+  const RepeatOptionView = ({ repeatType, onChange }: { repeatType: string, onChange: (value: string) => void }) => {
+    return (
       <Box>
         <Heading size='lg'>Repeat</Heading>
         <HStack className='gap-4 my-4'>
@@ -115,120 +138,160 @@ const RepeatInput = ({repeatType, repeatValues, onSelected }: { repeatType: stri
                 key={option}
                 onPress={() => {
                   setRepeat(option);
-                  setRepeatValues([]);
-                  onSelected(option, []);
+                  // setRepeatValues([]);
+                  onChange(option);
                 }}
                 disabled={true}
-                className={`${repeat === option ?
+                className={`${repeatType === option ?
                   'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
-                variant={repeat === option ? 'solid' : 'outline'}
-                size='xl'>
+                variant={repeatType === option ? 'solid' : 'outline'}
+              >
                 <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
               </Button>
             ))
           }
         </HStack>
       </Box>
+    );
+  }
+
+  const RepeatValuesView = ({ repeatValues, onChange }: { repeatValues: string[], onChange: (values: string[]) => void }) => {
+    const [allDay, setAllDay] = useState(true);
+    return (
+      <Box>
+        <View className='flex-row items-center justify-between my-2'>
+          <Heading size='lg'>On these days:</Heading>
+          <View className='flex-row items-center'>
+            <Text className='text-gray-400 mr-2'>All day</Text>
+            <Checkbox value='all-day' isChecked={allDay} onChange={(val) => {
+              setAllDay(val);
+              if (val) {
+                onChange(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+              } else {
+                onChange([]);
+              }
+            }}>
+              <CheckboxIndicator className={`data-[active=true]:bg-[#8587ea] data-[checked=true]:bg-[#8587ea] data-[unchecked=true]:bg-transparent ${allDay ? 'border-0' : 'border-gray-300 border-[1px]'} rounded-sm w-5 h-5 justify-center items-center`}>
+                <CheckboxIcon as={CheckIcon} />
+              </CheckboxIndicator>
+            </Checkbox>
+          </View>
+        </View>
+
+        <View className='flex-row items-center gap-2 my-4'>
+          {
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <Pressable
+                key={day}
+                onPress={() => {
+
+                  let newValues = [...repeatValues];
+                  if (newValues.includes(day)) {
+                    newValues = newValues.filter((d) => d !== day);
+                  } else {
+                    newValues.push(day);
+                  }
+                  if (newValues.length === 7) {
+                    setAllDay(true);
+                  } else {
+                    setAllDay(false);
+                  }
+
+                  onChange(newValues);
+                }}
+                className={`flex-1 border-[1px] items-center justify-center rounded-lg w-12 h-12 ${allDay || repeatValues.includes(day) ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-gray-300'}`}
+              >
+                <Text className={`${allDay || repeatValues.includes(day) ? 'text-white' : 'text-gray-700'}`}>{day[0]}</Text>
+              </Pressable>
+            ))
+          }
+        </View>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <Controller
+        control={control}
+        name="repeat"
+        render={({ field: { onChange, value } }) => (
+          <RepeatOptionView repeatType={value} onChange={onChange} />
+        )}
+      />
       {repeat === 'daily' && (
-        <Box>
-          <View className='flex-row items-center justify-between my-2'>
-            <Heading size='lg'>On these days:</Heading>
-            <View className='flex-row items-center'>
-              <Text className='text-gray-400 mr-2'>All day</Text>
-              <Checkbox value='all-day' isChecked={allDay} onChange={(val) => {
-                setAllDay(val);
-                if (val) {
-                  setRepeatValues(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
-                  onSelected(repeat, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
-                } else {
-                  setRepeatValues([]);
-                  onSelected(repeat, []);
-                }
-              }}>
-                <CheckboxIndicator className={`data-[active=true]:bg-[#8587ea] data-[checked=true]:bg-[#8587ea] data-[unchecked=true]:bg-transparent ${allDay ? 'border-0' : 'border-gray-300 border-[1px]'} rounded-sm w-5 h-5 justify-center items-center`}>
-                  <CheckboxIcon as={CheckIcon} />
-                </CheckboxIndicator>
-              </Checkbox>
-            </View>
-          </View>
-
-          <View className='flex-row items-center gap-4 my-4'>
-            {
-              ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <Pressable
-                  key={day}
-                  onPress={() => {
-                    
-                    let newValues = [...rValues];
-                    if (newValues.includes(day)) {
-                      newValues = newValues.filter((d) => d !== day);
-                    } else {
-                      newValues.push(day);
-                    }
-                    if (newValues.length === 7) {
-                      setAllDay(true);
-                    } else {
-                      setAllDay(false);
-                    }
-
-                    setRepeatValues(newValues);
-                    onSelected(repeat, newValues);
-                  }}
-                  className={`border-[1px] items-center justify-center rounded-lg w-12 h-12 ${allDay || rValues.includes(day) ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-gray-300'}`}
-                >
-                  <Text className={`${allDay || rValues.includes(day) ? 'text-white' : 'text-gray-700'}`}>{day}</Text>
-                </Pressable>
-              ))
-            }
-          </View>
-        </Box>
+        <Controller
+          control={control}
+          name="repeatValues"
+          render={({ field: { onChange, value } }) => (
+            <RepeatValuesView repeatValues={value} onChange={onChange} />
+          )}
+        />
       )}
     </>
   );
 }
 
-const IconInput = ({ value, onSelected }: { value: string | null; onSelected: (emoji: string) => void }) => {
-
-  const [icon, setIcon] = useState(value || '☂️');
+const IconInput = ({ control, errors }: { control: any, errors: any }) => {
+  // const [icon, setIcon] = useState(value);
   const randomEmojis = ["☂️", "🎓", "💼", "🧳", "👑", "🏄🏻‍♂️", "🐓", "🏯", "💳", "💞", "🫎",
-    //  "🩻", "🗓", "💎", "🗑", "❤️‍🔥", "🫅", "⚒", "💻", "⌚️"
+    "🩻", "🗓", "💎", "🗑", "❤️‍🔥", "🫅", "⚒", "💻", "⌚️"
   ];
 
   return (
-    <Box>
-      <Heading size='lg'>Icon</Heading>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <HStack className='gap-2 my-4'>
-          {randomEmojis.map((e, index) => (
-            <Pressable
-              key={e + index}
-              onPress={() => {
-                setIcon(e);
-                onSelected(e);
-              }}
-              className={`border-[1px] items-center justify-center rounded-[4px] w-14 h-14 ${icon === e ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-[#f7f7f7]'}`}
-            >
-              <Box>
-                <Text className='text-[30px]'>{e}</Text>
-              </Box>
-            </Pressable>
-          ))}
-        </HStack>
-      </ScrollView>
-    </Box>
+    <Controller
+      control={control}
+      rules={{ required: false }}
+      name="icon"
+      render={({ field: { onChange, value } }) => (
+        <View>
+          <Box>
+            <Heading size='lg'>Icon</Heading>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <HStack className='gap-2 my-4'>
+                {randomEmojis.map((e, index) => (
+                  <Pressable
+                    key={e + index}
+                    onPress={() => {
+                      onChange(e);
+                    }}
+                    className={`border-[1px] items-center justify-center rounded-[4px] w-14 h-14 ${value === e ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-[#f7f7f7]'}`}
+                  >
+                    <Box>
+                      <Text className='text-[30px]'>{e}</Text>
+                    </Box>
+                  </Pressable>
+                ))}
+              </HStack>
+            </ScrollView>
+          </Box>
+          {errors.icon && <Text className='text-red-500 mt-1'>{errors.icon.message}</Text>}
+        </View>
+      )}
+    />
   );
 };
 
+
+
 const Page = () => {
   const navigation = useNavigation();
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(COLORS[0]);
-  const [icon, setIcon] = useState<string | null>('☂️');
-  const [doItAt, setDoItAt] = useState<string | null>(null);
-  const [repeat, setRepeat] = useState('daily');
-  const [repeatValues, setRepeatValues] = useState<string[]>(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
-  const [endDate, setEndDate] = useState(false);
-  const [selectedDays, setSelectedDays] = useState({});
+  const addRoutineTask = useCandyContext(state => state.addRoutineTask);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      name: "",
+      color: "",
+      icon: "",
+      doItAt: "",
+      repeat: "daily",
+      repeatValues: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    }
+  })
 
   const { id } = useLocalSearchParams();
   const isEdit = !!id;
@@ -253,34 +316,65 @@ const Page = () => {
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <VStack className='gap-4 m-6'>
-          <Box>
-            <View className='pb-3'>
-              <Heading size='lg'>Task Name</Heading>
-            </View>
-            <Input
-              className='bg-gray-50 border-0 h-14 rounded-lg'
-            >
-              <InputField
-                underlineColorAndroid={'transparent'}
-                value={name}
-                onChangeText={setName}
-                placeholder="Task Name"
-                size='sm'
-                className='placeholder:text-gray-300'
-              />
-            </Input>
-          </Box>
-          <IconInput value={icon} onSelected={(emoji) => { setIcon(emoji); }} />
-          <ColorInput value={color} onSelected={(color) => { setColor(color); }} />
-          <RepeatInput repeatType={repeat} repeatValues={repeatValues} onSelected={(rType, rValues) => { setRepeat(rType); setRepeatValues(rValues); }} />
-          <DoItAtInput value={doItAt} onSelected={(value) => { setDoItAt(value); }} />
+          <Controller
+            control={control}
+            name="name"
+            rules={{ required: "Task name is required" }}
+            render={({ field: { onChange, value } }) => (
+              <View>
+                <Box>
+                  <View className='pb-3'>
+                    <Heading size='lg'>Task Name</Heading>
+                  </View>
+                  <Input
+                    className='bg-gray-50 border-0 h-14 rounded-lg'
+                  >
+                    <InputField
+                      underlineColorAndroid={'transparent'}
+                      value={value}
+                      onChangeText={onChange}
+                      placeholder="Task Name"
+                      size='sm'
+                      className='placeholder:text-gray-300 font-bold'
+                    />
+                  </Input>
+                </Box>
+                {errors.name && <Text className='text-red-500 mt-1'>{errors.name.message}</Text>}
+              </View>
+            )}
+          />
+          <IconInput control={control} errors={errors} />
+          <ColorInput control={control} errors={errors} />
+          <RepeatInput control={control} errors={errors} />
+          <DoItAtInput control={control} errors={errors} />
           {/* <HStack className='items-center justify-between'>
             <Text>End Habit on</Text>
             <Switch value={endDate} onValueChange={setEndDate} />
           </HStack> */}
           <Button className='h-auto py-4 rounded-full data-[active=true]:bg-[#8A85E6] bg-[#8A85E6] mt-4'
             variant='solid'
-            onPress={() => { navigation.goBack(); }}>
+            onPress={() => {
+              log.info('Submitting form...');
+
+              handleSubmit((data) => {
+                log.debug('Form Data:', data);
+                
+                addRoutineTask({
+                  id: String(Date.now()),
+                  label: data.name,
+                  color: data.color,
+                  isFavorite: false,
+                  icon: data.icon,
+                  doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
+                  repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
+                  repeatValues: data.repeatValues,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  deletedAt: null,
+                });
+                navigation.goBack();
+              })();
+            }}>
             <ButtonText>Save</ButtonText>
           </Button>
         </VStack>

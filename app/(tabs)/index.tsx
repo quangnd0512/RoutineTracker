@@ -229,8 +229,8 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       barWidth={barWidth}
       noOfSections={3}
       maxValue={Math.max(...taskCounts) + 3 < 5 ? 5 : Math.max(...taskCounts) + 3}
-      barBorderTopLeftRadius={15}
-      barBorderTopRightRadius={15}
+      barBorderTopLeftRadius={barWidth / 2}
+      barBorderTopRightRadius={barWidth / 2}
       yAxisTextStyle={{ color: 'gray' }}
       rulesColor={'transparent'}
       onPress={(item: any, index: number) => {
