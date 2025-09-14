@@ -239,20 +239,6 @@ const Page = () => {
     });
   }, [navigation]);
 
-  const onDayPress = (day: any) => {
-    const dateString = day.dateString;
-    const newSelectedDays: any = { ...selectedDays };
-    if (newSelectedDays[dateString]) {
-      delete newSelectedDays[dateString];
-    } else {
-      newSelectedDays[dateString] = {
-        selected: true,
-        selectedColor: color,
-      };
-    }
-    setSelectedDays(newSelectedDays);
-  };
-
   return (
     <View className='flex-1 bg-white pt-12'>
       <View className='headerPage'>
@@ -292,7 +278,7 @@ const Page = () => {
             <Text>End Habit on</Text>
             <Switch value={endDate} onValueChange={setEndDate} />
           </HStack> */}
-          <Button className='rounded-full data-[active=true]:bg-[#8A85E6] bg-[#8A85E6] mt-4'
+          <Button className='h-auto py-4 rounded-full data-[active=true]:bg-[#8A85E6] bg-[#8A85E6] mt-4'
             variant='solid'
             onPress={() => { navigation.goBack(); }}>
             <ButtonText>Save</ButtonText>
