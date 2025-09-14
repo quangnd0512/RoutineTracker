@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import emojis from '@/assets/data/emoji.json';
 import { Calendar } from 'react-native-calendars';
@@ -156,7 +156,7 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
   }
 
   const RepeatValuesView = ({ repeatValues, onChange }: { repeatValues: string[], onChange: (values: string[]) => void }) => {
-    const [allDay, setAllDay] = useState(true);
+    const [allDay, setAllDay] = useState(repeatValues.length === 7);
     return (
       <Box>
         <View className='flex-row items-center justify-between my-2'>
@@ -277,6 +277,14 @@ const IconInput = ({ control, errors }: { control: any, errors: any }) => {
 const Page = () => {
   const navigation = useNavigation();
   const addRoutineTask = useCandyContext(state => state.addRoutineTask);
+  const updateRoutineTask = useCandyContext(state => state.updateRoutineTask);
+
+  const { id } = useLocalSearchParams();
+  log.info('Form ID:', id);
+  const isEdit = !!id;
+
+  const getRoutineTask = useCandyContext(state => state.getRoutineTask);
+  const routineTask = isEdit ? getRoutineTask(id as string) : null;
 
   const {
     control,
@@ -284,17 +292,14 @@ const Page = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      name: "",
-      color: "",
-      icon: "",
-      doItAt: "",
-      repeat: "daily",
-      repeatValues: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      name: routineTask ? routineTask.label : '',
+      color: routineTask ? routineTask.color : '',
+      icon: routineTask ? routineTask.icon : '',
+      doItAt: routineTask ? routineTask.doItAt : '',
+      repeat: routineTask ? (routineTask.repeat ? routineTask.repeat : 'daily') : 'daily',
+      repeatValues: routineTask ? (routineTask.repeatValues ? routineTask.repeatValues : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     }
-  })
-
-  const { id } = useLocalSearchParams();
-  const isEdit = !!id;
+  });
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -358,20 +363,33 @@ const Page = () => {
 
               handleSubmit((data) => {
                 log.debug('Form Data:', data);
-                
-                addRoutineTask({
-                  id: String(Date.now()),
-                  label: data.name,
-                  color: data.color,
-                  isFavorite: false,
-                  icon: data.icon,
-                  doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
-                  repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
-                  repeatValues: data.repeatValues,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  deletedAt: null,
-                });
+
+                if (isEdit) {
+                  updateRoutineTask(id as string, {
+                    label: data.name,
+                    color: data.color,
+                    icon: data.icon,
+                    doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
+                    repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
+                    repeatValues: data.repeatValues,
+                    updatedAt: new Date(),
+                  });
+                } else {
+                  addRoutineTask({
+                    id: String(Date.now()),
+                    label: data.name,
+                    color: data.color,
+                    isFavorite: false,
+                    icon: data.icon,
+                    doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
+                    repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
+                    repeatValues: data.repeatValues,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    deletedAt: null,
+                  });
+
+                } 
                 navigation.goBack();
               })();
             }}>

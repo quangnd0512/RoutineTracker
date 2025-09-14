@@ -37,9 +37,10 @@ type RoutineTaskProps = {
   onDelete: () => void;
   onSwipeableWillOpen: () => void;
   onClose: () => void;
+  onItemPress?: (taskId: string) => void;
 };
 
-const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onToggle, onToggleFavorite, onDelete, onSwipeableWillOpen, onClose }, ref) => {
+const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onToggle, onToggleFavorite, onDelete, onSwipeableWillOpen, onClose, onItemPress }, ref) => {
   const renderRightActions = () => {
     return (
       <View className='justify-center items-center h-full w-20 py-2 pl-1'>
@@ -64,7 +65,9 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
       onSwipeableClose={onClose}
     >
       <Card className='bg-white my-1'>
-        <TouchableOpacity onPress={() => onToggle(task.id)}>
+        <TouchableOpacity onPress={() => {
+          onItemPress?.(task.id);
+        }}>
           <Box className="flex-row items-center">
             <Checkbox
               value={task.id}
@@ -177,8 +180,6 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
 
 export default function TaskScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showModal, setShowModal] = useState(false)
-  const [taskLabel, setTaskLabel] = useState('');
   const [isConfirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const openRowRef = useRef<Swipeable | null>(null);
@@ -187,7 +188,6 @@ export default function TaskScreen() {
 
   // Call useCandyContext at the top level of the component, not inside useEffect
   const routineTasks = useCandyContext(state => state.routineTasks);
-  const addRoutineTask = useCandyContext(state => state.addRoutineTask);
   const deleteRoutineTask = useCandyContext(state => state.deleteRoutineTask);
   const updateRoutineTask = useCandyContext(state => state.updateRoutineTask);
 
@@ -235,28 +235,6 @@ export default function TaskScreen() {
     // );
   }, [tasks, updateRoutineTask]);
 
-  const handleAddTask = () => {
-    if (taskLabel.trim() !== '') {
-      const newTask: Task = {
-        id: String(Date.now()),
-        label: taskLabel,
-        isFavorite: false,
-        isDone: false,
-      };
-      addRoutineTask({
-        id: newTask.id,
-        label: newTask.label,
-        isFavorite: newTask.isFavorite,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      });
-
-      setTaskLabel('');
-      setShowModal(false);
-    }
-  };
-
   const handleDeletePress = (taskId: string) => {
     setTaskToDelete(taskId);
     setConfirmDeleteVisible(true);
@@ -287,6 +265,10 @@ export default function TaskScreen() {
       }
     };
 
+    const handleItemPress = (taskId: string) => {
+      router.push(`/tasks/form?id=${taskId}`);
+    }
+
     return (
       <RoutineTask
         ref={ref}
@@ -296,13 +278,14 @@ export default function TaskScreen() {
         onDelete={() => handleDeletePress(item.id)}
         onSwipeableWillOpen={handleSwipeableWillOpen}
         onClose={handleClose}
+        onItemPress={handleItemPress}
       />
     );
-  }, [handleToggleFavorite, handleToggleTask]);
+  }, [handleToggleFavorite, handleToggleTask, router]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'bg-primary-50' }}>
+      <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'white' }}>
         <FilterTask selectedDate={filteredOnDate} onSelectedDateChange={setFilteredOnDate} />
         <Divider className='my-2' />
         <FlatList
@@ -317,56 +300,11 @@ export default function TaskScreen() {
           size="lg"
           placement="bottom right"
           onPress={() => {
-            // setShowModal(true)
             router.push('/tasks/form');
           }}
         >
           <Icon as={PlusIcon} className='text-white' />
         </Fab>
-        <Modal
-          isOpen={showModal}
-          onClose={() => {
-            setTaskLabel('');
-            setShowModal(false)
-          }}
-        >
-          <ModalBackdrop />
-          <ModalContent>
-            <ModalHeader>
-              <Heading size="lg" className=''>New Task</Heading>
-              <ModalCloseButton>
-                <Icon as={XIcon} className='text-gray-500'/>
-              </ModalCloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <Input>
-                <InputField
-                  value={taskLabel}
-                  onChangeText={setTaskLabel}
-                  placeholder="Task Label"
-                />
-              </Input>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="outline"
-                size="sm"
-                action="secondary"
-                onPress={() => {
-                  setShowModal(false)
-                }}
-              >
-                <ButtonText>Cancel</ButtonText>
-              </Button>
-              <Button
-                size="sm"
-                onPress={handleAddTask}
-              >
-                <ButtonText>Submit</ButtonText>
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
         <ConfirmDelete
           isOpen={isConfirmDeleteVisible}
           onClose={() => setConfirmDeleteVisible(false)}

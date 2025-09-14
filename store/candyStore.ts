@@ -27,6 +27,7 @@ export interface CandyState extends CandyProps {
     addRoutineTask: (task: RoutineTask) => void;
     deleteRoutineTask: (taskId: string) => void;
     updateRoutineTask: (taskId: string, updatedTask: Partial<RoutineTask>) => void;
+    getRoutineTask: (taskId: string) => RoutineTask | undefined;
 }
 
 export type CandyStore = ReturnType<typeof CreateCandyAppStore>
@@ -39,7 +40,7 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
 
     return create<CandyProps & CandyState>()(
         persist(
-            (set) => ({
+            (set, get) => ({
                 ...defaultProps,
                 ...initProps,
                 increment: () => set((prev) => ({ ...prev, count: prev.count + 1 })),
@@ -60,7 +61,9 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
                         routineTasks: state.routineTasks.map((task) =>
                             task.id === taskId ? { ...task, ...updatedTask } : task
                         ),
-                    }))
+                    })),
+                getRoutineTask: (taskId: string) =>
+                    get().routineTasks.find((task) => task.id === taskId),                
             }),
             {
                 name: 'candy-storage',

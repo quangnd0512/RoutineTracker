@@ -11,6 +11,8 @@ import { CandyContext } from "@/store/context";
 import { useEffect, useRef } from "react";
 import { candyStore } from "@/store/candyStore";
 import { scheduleNotificationsForRoutineTasks, setupNotificationHandler } from "@/services/notification";
+import { Platform } from "react-native";
+import log from "@/services/logger";
 
 type CandyProviderProps = React.PropsWithChildren<{}>;
 
@@ -33,17 +35,18 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded) {
+    if (Platform.OS !== "web") {
+      log.info("Setting up notification handler");
       setupNotificationHandler();
       const unsubscribe = candyStore.subscribe(() => {
         scheduleNotificationsForRoutineTasks();
       });
 
       return () => {
-        unsubscribe();
+        // unsubscribe();
       };
     }
-  }, [loaded]);
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.
