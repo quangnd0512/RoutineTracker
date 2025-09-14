@@ -20,6 +20,7 @@ import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler'
 import log from '@/services/logger';
 import { PlusIcon, XIcon } from 'lucide-react-native';
 import StarIcon from '@/components/icons/StarIcon';
+import { useNavigation, useRouter } from 'expo-router';
 
 type Task = {
   id: string;
@@ -182,6 +183,7 @@ export default function TaskScreen() {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const openRowRef = useRef<Swipeable | null>(null);
   const [filteredOnDate, setFilteredOnDate] = useState<Date | null>(new Date());
+  const router = useRouter();
 
   // Call useCandyContext at the top level of the component, not inside useEffect
   const routineTasks = useCandyContext(state => state.routineTasks);
@@ -314,7 +316,10 @@ export default function TaskScreen() {
         <Fab
           size="lg"
           placement="bottom right"
-          onPress={() => setShowModal(true)}
+          onPress={() => {
+            // setShowModal(true)
+            router.push('/tasks/form');
+          }}
         >
           <Icon as={PlusIcon} className='text-white' />
         </Fab>

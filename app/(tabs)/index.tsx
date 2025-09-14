@@ -9,7 +9,7 @@ import { RoutineTaskService } from "@/services/routineTaskService";
 import { useFocusEffect } from "expo-router";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { ScrollView, Text, View, StyleSheet } from "react-native";
+import { ScrollView, Text, View, StyleSheet, useWindowDimensions } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { BarChart } from "react-native-gifted-charts";
 
@@ -170,6 +170,10 @@ const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
 const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
   const [pressedBarIndex, setPressedBarIndex] = useState(-1);
   const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const { width } = useWindowDimensions();
+  const initialSpacing = 10;
+  const barWidth = (width * 0.85 - initialSpacing) * 3 / (taskCounts.length * 4);
+  const spacing = barWidth / 3;
 
   const barData = taskCounts.map((count, index) => {
     return {
@@ -182,9 +186,17 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
           return (
             <View className="items-center mb-[10px]">
               <View
-                className="items-center justify-center w-12 h-12 rounded-full bg-[#8985e8]"
+                className="items-center justify-center rounded-full bg-[#8985e8]"
+                style={{
+                  width: barWidth * 1.2,
+                  height: barWidth * 1.2,
+                }}
               >
-                <View className="items-center justify-center w-10 h-10 rounded-full bg-white">
+                <View className="items-center justify-center rounded-full bg-white"
+                  style={{
+                    width: barWidth * 1.0,
+                    height: barWidth * 1.0
+                  }}>
                   <Text className="text-[14px] font-bold">{count}</Text>
                   <Text className="text-[6px]">tasks</Text>
                 </View>
@@ -212,8 +224,9 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       backgroundColor="transparent"
       yAxisThickness={0}
       xAxisThickness={0}
-      initialSpacing={0}
-      spacing={10}
+      initialSpacing={initialSpacing}
+      spacing={spacing}
+      barWidth={barWidth}
       noOfSections={3}
       maxValue={Math.max(...taskCounts) + 3 < 5 ? 5 : Math.max(...taskCounts) + 3}
       barBorderTopLeftRadius={15}
