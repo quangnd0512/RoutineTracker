@@ -8,25 +8,28 @@ import { Checkbox, CheckboxIcon, CheckboxIndicator, CheckboxLabel } from '@/comp
 import { Divider } from '@/components/ui/divider';
 import { Fab } from '@/components/ui/fab';
 import { Heading } from '@/components/ui/heading';
-import { CheckIcon, Icon } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 import { Input, InputField } from '@/components/ui/input';
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { RoutineTaskService } from '@/services/routineTaskService';
 import { useCandyContext } from '@/store/context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, TouchableOpacity, View } from 'react-native';
-import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { Animated, Dimensions, FlatList, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler, State, Swipeable } from 'react-native-gesture-handler';
 import log from '@/services/logger';
-import { PlusIcon, XIcon } from 'lucide-react-native';
+import { ArrowRightIcon, CheckIcon, PlusIcon, XIcon } from 'lucide-react-native';
 import StarIcon from '@/components/icons/StarIcon';
 import { useNavigation, useRouter } from 'expo-router';
+import { Text } from '@/components/ui/text';
 
 type Task = {
   id: string;
   label: string;
   isFavorite: boolean;
   isDone?: boolean;
+  color?: string;
+  icon?: string;
 };
 
 
@@ -34,42 +37,81 @@ type RoutineTaskProps = {
   task: Task;
   onToggle: (taskId: string) => void;
   onToggleFavorite: (taskId: string) => void;
-  onDelete: () => void;
+  onDelete?: (taskId: string) => void;
   onSwipeableWillOpen: () => void;
   onClose: () => void;
   onItemPress?: (taskId: string) => void;
 };
 
 const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onToggle, onToggleFavorite, onDelete, onSwipeableWillOpen, onClose, onItemPress }, ref) => {
-  const renderRightActions = () => {
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+    log.info("[RoutineTask] Rendering right actions", { progress, dragX });
+
+    const trans = dragX.interpolate({
+      inputRange: [-SCREEN_WIDTH * 0.2, 0],
+      outputRange: [0, SCREEN_WIDTH * 0.8],
+      extrapolate: 'clamp'
+    });
     return (
-      <View className='justify-center items-center h-full w-20 py-2 pl-1'>
-        <TouchableOpacity
-          onPress={onDelete}
+      <View
+        className='bg-red-500 rounded-md'
+        style={{ width: SCREEN_WIDTH, marginBottom: 12 }}>
+        <Animated.View
           style={{
-            backgroundColor: 'red',
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+            transform: [{ translateX: trans }],
           }}
-          className='rounded-xl justify-center items-center w-full h-full'
         >
-          <ThemedText style={{ color: 'white' }}>Delete</ThemedText>
-        </TouchableOpacity>
+          <View className='flex-row items-center gap-2 p-4'>
+            <Text className='text-white' >Skip</Text>
+            <Icon as={ArrowRightIcon} color='white' size='xl' />
+          </View>
+        </Animated.View>
       </View>
     );
   };
 
-  return (
-    <Swipeable
-      ref={ref}
-      renderRightActions={renderRightActions}
-      onSwipeableWillOpen={onSwipeableWillOpen}
-      onSwipeableClose={onClose}
-    >
-      <Card className='bg-white my-1'>
+  const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+    log.info("[RoutineTask] Rendering left actions", { progress, dragX });
+
+    const trans = dragX.interpolate({
+      inputRange: [-SCREEN_WIDTH * 0.2, 0],
+      outputRange: [0, 0],
+      extrapolate: 'clamp'
+    });
+    return (
+      <View
+        className={`${task.isDone ? 'bg-red-500': 'bg-green-500'} rounded-md`}
+        style={{ width: SCREEN_WIDTH, marginBottom: 12 }}>
+        <Animated.View
+          className='flex-1 items-start justify-center'
+          style={{
+            transform: [{ translateX: trans }],
+          }}
+        >
+          <View className='items-center gap-2 px-4'>
+            <Icon as={task.isDone ? XIcon : CheckIcon} color='white' size='xl' />
+          </View>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const ItemView = ({ }) => {
+    return (
+      <Card className="mb-3" style={{
+        backgroundColor: task.color || 'white',
+      }}>
         <TouchableOpacity onPress={() => {
           onItemPress?.(task.id);
         }}>
           <Box className="flex-row items-center">
-            <Checkbox
+            {/* <Checkbox
               value={task.id}
               isChecked={task.isDone ? true : false}
               onChange={() => onToggle(task.id)}
@@ -79,19 +121,70 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
                 <CheckboxIcon as={CheckIcon} />
               </CheckboxIndicator>
               <CheckboxLabel />
-            </Checkbox>
+            </Checkbox> */}
+            <Box>
+              {task.icon && (
+                <Text size='3xl'>{task.icon}</Text>
+              )}
+            </Box>
             <ThemedText
-              className={`ml-2 flex-1 ${task.isDone ? 'line-through text-gray-500' : ''
-                }`}
+              className={`ml-3 flex-1 font-bold`}
             >
               {task.label}
             </ThemedText>
-            <TouchableOpacity onPress={() => onToggleFavorite(task.id)}>
+            {/* <TouchableOpacity onPress={() => onToggleFavorite(task.id)}>
               <StarIcon color={task.isFavorite ? 'gold' : 'gray'} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            {
+              task.isDone ? (
+                <View className="bg-green-500 rounded-full p-1">
+                  <Icon as={CheckIcon} color='white' size='sm' />
+                </View>
+              ) : (
+                <></>
+              )
+            }
           </Box>
         </TouchableOpacity>
       </Card>
+    );
+  }
+
+  return (
+    <Swipeable
+      ref={ref}
+      overshootRight={false}
+      // friction={2}
+      rightThreshold={SCREEN_WIDTH * 0.1}
+      renderRightActions={task.isDone ? undefined : renderRightActions}
+      renderLeftActions={renderLeftActions}
+      onSwipeableWillOpen={onSwipeableWillOpen}
+      onSwipeableRightWillOpen={() => {
+        // onDelete?.(task.id);
+        setTimeout(() => {
+          if (ref && typeof ref !== 'function' && ref.current) {
+            ref.current.close();
+          }
+        }, 100);
+        log.info("[RoutineTask] onSwipeableRightWillOpen");
+      }}
+      onSwipeableClose={() => {
+        log.info("[RoutineTask] onSwipeableClose");
+        onClose();
+      }}
+      onSwipeableLeftWillOpen={() => {
+        setTimeout(() => {
+          onToggle(task.id);
+          if (ref && typeof ref !== 'function' && ref.current) {
+            ref.current.close();
+          }
+        }, 100);
+        log.info("[RoutineTask] onSwipeableLeftWillOpen");
+      }}
+    >
+      <Animated.View style={{ transform: [{ translateX }] }}>
+        <ItemView />
+      </Animated.View>
     </Swipeable>
   );
 });
@@ -193,12 +286,18 @@ export default function TaskScreen() {
 
   useEffect(() => {
     RoutineTaskService.getFilteredRoutineTasks(routineTasks, filteredOnDate).then(filteredTasks => {
-      setTasks(filteredTasks.map(task => ({
-        id: task.id,
-        label: task.label,
-        isFavorite: task.isFavorite,
-        isDone: task.isDone || false, // Ensure isDone is always a boolean
-      })));
+      setTasks(filteredTasks.map(task => {
+        log.info("[TaskScreen] Mapping task:", task);
+
+        return ({
+          id: task.id,
+          label: task.label,
+          isFavorite: task.isFavorite,
+          isDone: task.isDone || false, // Ensure isDone is always a boolean
+          color: task.color,
+          icon: task.icon,
+        })
+      }));
     });
   }, [routineTasks, filteredOnDate]);
 
@@ -227,7 +326,7 @@ export default function TaskScreen() {
 
   const handleToggleFavorite = useCallback((taskId: string) => {
     updateRoutineTask(taskId, { isFavorite: !tasks.find(task => task.id === taskId)?.isFavorite });
-    
+
     // setTasks(prevTasks =>
     //   prevTasks.map(task =>
     //     task.id === taskId ? { ...task, isFavorite: !task.isFavorite } : task
@@ -235,19 +334,23 @@ export default function TaskScreen() {
     // );
   }, [tasks, updateRoutineTask]);
 
-  const handleDeletePress = (taskId: string) => {
-    setTaskToDelete(taskId);
-    setConfirmDeleteVisible(true);
-  };
+  // const handleDeletePress = (taskId: string) => {
+  //   setTaskToDelete(taskId);
+  //   setConfirmDeleteVisible(true);
+  // };
 
-  const handleDeleteTask = () => {
-    if (taskToDelete) {
-      deleteRoutineTask(taskToDelete);
+  // const handleDeleteTask = () => {
+  //   if (taskToDelete) {
+  //     deleteRoutineTask(taskToDelete);
 
-      setTaskToDelete(null);
-      setConfirmDeleteVisible(false);
-    }
-  };
+  //     setTaskToDelete(null);
+  //     setConfirmDeleteVisible(false);
+  //   }
+  // };
+
+  const handleItemPressed = useCallback((taskId: string) => {
+    router.push(`/tasks/form?id=${taskId}`);
+  }, [router]);
 
   const renderItem = useCallback(({ item }: { item: Task }) => {
     const ref = React.createRef<Swipeable>();
@@ -265,23 +368,21 @@ export default function TaskScreen() {
       }
     };
 
-    const handleItemPress = (taskId: string) => {
-      router.push(`/tasks/form?id=${taskId}`);
-    }
-
     return (
       <RoutineTask
         ref={ref}
         task={item}
         onToggle={handleToggleTask}
         onToggleFavorite={handleToggleFavorite}
-        onDelete={() => handleDeletePress(item.id)}
+        onDelete={(taskId) => {
+          // handle hide routine task
+        }}
         onSwipeableWillOpen={handleSwipeableWillOpen}
         onClose={handleClose}
-        onItemPress={handleItemPress}
+        onItemPress={handleItemPressed}
       />
     );
-  }, [handleToggleFavorite, handleToggleTask, router]);
+  }, [handleToggleFavorite, handleToggleTask, handleItemPressed]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -305,13 +406,6 @@ export default function TaskScreen() {
         >
           <Icon as={PlusIcon} className='text-white' />
         </Fab>
-        <ConfirmDelete
-          isOpen={isConfirmDeleteVisible}
-          onClose={() => setConfirmDeleteVisible(false)}
-          onConfirm={handleDeleteTask}
-          title="Confirm Deletion"
-          message="Are you sure you want to delete this task?"
-        />
       </ThemedView>
     </GestureHandlerRootView>
   );

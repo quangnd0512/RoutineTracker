@@ -77,6 +77,12 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
                         createdAt: task.createdAt,
                         updatedAt: task.updatedAt,
                         deletedAt: task.deletedAt,
+                        color: task.color,
+                        icon: task.icon,
+                        doItAt: task.doItAt,
+                        repeat: task.repeat,
+                        repeatValues: task.repeatValues,
+                        endDate: task.endDate,
                     })),
                 }),
             }
