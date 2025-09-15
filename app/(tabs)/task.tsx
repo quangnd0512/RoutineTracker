@@ -86,7 +86,7 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
     });
     return (
       <View
-        className={`${task.isDone ? 'bg-red-500': 'bg-green-500'} rounded-md`}
+        className={`${task.isDone ? 'bg-red-500' : 'bg-green-500'} rounded-md`}
         style={{ width: SCREEN_WIDTH, marginBottom: 12 }}>
         <Animated.View
           className='flex-1 items-start justify-center'
@@ -104,7 +104,7 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
 
   const ItemView = ({ }) => {
     return (
-      <Card className="mb-3" style={{
+      <Card className="mb-3 border-[1px] border-gray-50" style={{
         backgroundColor: task.color || 'white',
       }}>
         <TouchableOpacity onPress={() => {
@@ -240,7 +240,7 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
   }
 
   return (
-    <Box className='flex-row items-center'>
+    <Box className='flex-row items-center mb-4'>
       {showDatePicker && (
         <DateTimePicker
           testID="dateTimePicker"
@@ -254,13 +254,13 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
         data={dateNames}
         renderItem={({ item }) => (
           <Button
-            size="sm"
+            size="md"
             variant="outline"
             action={item === selectedDateName ? 'primary' : 'secondary'}
             onPress={() => onSelectItem(item)}
-            className="mr-2 rounded-full"
+            className={`mr-2 rounded-full ${item === selectedDateName ? 'bg-[#8882e7] border-[#8882e7]' : ''}`}
           >
-            <ButtonText>{item}</ButtonText>
+            <ButtonText className={`font-bold ${item === selectedDateName ? 'text-white' : 'text-black'}`}>{item}</ButtonText>
           </Button>
         )}
         keyExtractor={item => item}
@@ -386,12 +386,27 @@ export default function TaskScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemedView className="flex-1 p-2" style={{ backgroundColor: 'white' }}>
+      <ThemedView className="flex-1 p-2 gap-1" style={{ backgroundColor: 'white' }}>
         <FilterTask selectedDate={filteredOnDate} onSelectedDateChange={setFilteredOnDate} />
-        <Divider className='my-2' />
         <FlatList
-          data={tasks}
+          className='flex-grow-0 h-min-0'
+          data={tasks.filter(task => !task.isDone)}
           renderItem={renderItem}
+          scrollEnabled={false} // 🚫 disables scrolling
+          keyExtractor={item => item.id}
+          onScrollBeginDrag={() => {
+            openRowRef.current?.close();
+          }}
+        />
+        <View className='flex-row items-center justify-between pb-4'>
+          <Text className='font-bold text-secondary-900' size='sm'>Completed</Text>
+          <Divider orientation='horizontal' className='flex-1 ml-2' />
+        </View>
+        <FlatList
+          className='flex-grow-0 h-min-0'
+          data={tasks.filter(task => task.isDone)}
+          renderItem={renderItem}
+          scrollEnabled={false} // 🚫 disables scrolling
           keyExtractor={item => item.id}
           onScrollBeginDrag={() => {
             openRowRef.current?.close();
@@ -399,12 +414,13 @@ export default function TaskScreen() {
         />
         <Fab
           size="lg"
+          className='bg-[#8882E7]'
           placement="bottom right"
           onPress={() => {
             router.push('/tasks/form');
           }}
         >
-          <Icon as={PlusIcon} className='text-white' />
+          <Icon as={PlusIcon} className='text-white' size='xl' />
         </Fab>
       </ThemedView>
     </GestureHandlerRootView>
