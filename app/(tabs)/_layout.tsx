@@ -7,7 +7,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Icon } from '@/components/ui/icon';
-import { HouseIcon, ListChecksIcon, SendHorizonalIcon } from 'lucide-react-native';
+import { HouseIcon, ListChecksIcon, SmilePlusIcon } from 'lucide-react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -48,11 +48,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="mood"
         options={{
-          title: 'Explore',
+          title: 'Mood Trackers',
           headerShown: true,
-          tabBarIcon: ({ focused }) => <Icon as={SendHorizonalIcon} className={colorStyle(focused)} />,
+          tabBarIcon: ({ focused }) => <Icon as={SmilePlusIcon} className={colorStyle(focused)} />,
         }}
       />
     </Tabs>

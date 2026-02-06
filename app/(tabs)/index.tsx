@@ -1,5 +1,4 @@
 import ProgressCircle from "@/components/CircleProgress";
-import CircleCheckIcon from "@/components/icons/CircleCheckIcon";
 import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Heading } from "@/components/ui/heading";
@@ -7,15 +6,19 @@ import { Icon } from "@/components/ui/icon";
 import log from "@/services/logger";
 import { RoutineTaskService } from "@/services/routineTaskService";
 import { useFocusEffect } from "expo-router";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react-native";
-import { useCallback, useState } from "react";
-import { ScrollView, Text, View, StyleSheet, useWindowDimensions } from "react-native";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { BarChart } from "react-native-gifted-charts";
-
+import { BarChart, LineChart } from "react-native-gifted-charts";
+import { useMoodStore } from "@/store/moodStore";
 
 const MonthlyCalendar = () => {
-  const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([])
+  const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([]);
 
   async function fetchFinishedDates(onDate: Date | null = null) {
     let markDate = new Date();
@@ -31,14 +34,16 @@ const MonthlyCalendar = () => {
     }
 
     const results = await Promise.all(TaskDates);
-    const finishedDates = results.map((res, index) => {
-      if (res.length > 0) {
-        const date = new Date(markDate);
-        date.setDate(index + 1);
-        return date.toISOString().split("T")[0];
-      }
-      return null;
-    }).filter(date => date !== null);
+    const finishedDates = results
+      .map((res, index) => {
+        if (res.length > 0) {
+          const date = new Date(markDate);
+          date.setDate(index + 1);
+          return date.toISOString().split("T")[0];
+        }
+        return null;
+      })
+      .filter((date) => date !== null);
 
     setMarkFinishedDates(finishedDates);
   }
@@ -62,7 +67,14 @@ const MonthlyCalendar = () => {
   }
 
   return (
-    <StatsView title="Calendar Stats" data={{ markFinishedDates, onMonthChange: (month) => fetchFinishedDates(month) }} type="progress_calendar" />
+    <StatsView
+      title="Calendar Stats"
+      data={{
+        markFinishedDates,
+        onMonthChange: (month) => fetchFinishedDates(month),
+      }}
+      type="progress_calendar"
+    />
   );
 };
 
@@ -80,13 +92,11 @@ const WeeklyChart = () => {
       const atDate = new Date(_now);
       atDate.setDate(_now.getDate() - weekDay + i);
 
-      tasks.push(
-        RoutineTaskService.getFinishedRoutineTasks(atDate)
-      );
+      tasks.push(RoutineTaskService.getFinishedRoutineTasks(atDate));
     }
 
     const results = await Promise.all(tasks);
-    const counts = results.map(res => res.length);
+    const counts = results.map((res) => res.length);
 
     while (counts.length < 7) {
       counts.push(0);
@@ -106,30 +116,144 @@ const WeeklyChart = () => {
 
   useFocusEffect(memoizedFetchTasks);
 
+  return <StatsView title="Tasks Completed" data={{ taskCounts }} type="bar" />;
+};
+
+const MoodChart = () => {
+  const { getMoodLog, addMoodLog, moodLogs } = useMoodStore();
+  const [lineData, setLineData] = useState<any[]>([]);
+  const { width } = useWindowDimensions();
+
+  // Seed test data if empty
+  useEffect(() => {
+    if (moodLogs.length === 0) {
+      const _now = new Date();
+      let weekDay = _now.getDay(); // 0 (Sun) to 6 (Sat)
+      if (weekDay === 0) weekDay = 7;
+
+      // Seed previous days of this week
+      for (let i = 1; i <= weekDay; i++) {
+        const atDate = new Date(_now);
+        atDate.setDate(_now.getDate() - weekDay + i);
+        const dateStr = atDate.toISOString().split("T")[0];
+
+        // Random mood 1-5
+        addMoodLog({
+          date: dateStr,
+          moodIndex: Math.floor(Math.random() * 5) + 1,
+        });
+      }
+    }
+  }, [moodLogs, addMoodLog]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const _now = new Date();
+      const currentDay = _now.getDay() === 0 ? 7 : _now.getDay(); // 1-7 (Mon-Sun)
+
+      const data = [];
+      const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+      // Calculate start of week (Monday)
+      const startOfWeek = new Date(_now);
+      startOfWeek.setDate(_now.getDate() - currentDay + 1);
+
+      for (let i = 0; i < 7; i++) {
+        const atDate = new Date(startOfWeek);
+        atDate.setDate(startOfWeek.getDate() + i);
+        const dateStr = atDate.toISOString().split("T")[0];
+        const log = getMoodLog(dateStr);
+        const dayLabel = dayLabels[i];
+
+        if (log) {
+          data.push({
+            value: (4 - log.moodIndex) + 1, // Invert: Great(0)->4, Bad(4)->0
+            label: dayLabel,
+            labelTextStyle: { color: "gray" },
+            dataPointText: "",
+          });
+        } else {
+          // For future days or days with no data, we push a point to maintain X-axis structure
+          // But we can try to hide it or set value to 0
+          // Since we can't easily break the line, let's set it to 0 (Bad) but hide data point
+          // This ensures Mon is at start and Sun is at end.
+          data.push({
+            value: 1, // Corresponds to "Bad" mood
+            label: dayLabel,
+            labelTextStyle: { color: "gray" },
+            hideDataPoint: true,
+            customDataPoint: () => null,
+            // Using a transparent color might hide the line segment if supported per-point?
+            // Unfortunately usually not.
+            // But this satisfies "Mon at start and Sun at end" structure.
+          });
+        }
+      }
+
+      setLineData(data);
+    }, [getMoodLog]),
+  );
+
+  // Calculate spacing to fit 7 points exactly in the width
+  // Total width available = Screen Width - Padding (e.g. 40 or 60)
+  // We have 7 points, so 6 intervals.
+  const chartWidth = width - 60;
+  const spacing = chartWidth / 7;
+
   return (
-    <StatsView title="Tasks Completed" data={{ taskCounts }} type="bar" />
-  )
-}
+    <StatsView
+      title="Mood Chart"
+      data={{ lineData, spacing, width: chartWidth }}
+      type="line"
+    />
+  );
+};
 
 interface StatsViewProps {
   title: string;
-  data: { taskCounts?: number[], markFinishedDates?: string[], onMonthChange?: (month: Date) => void };
-  type?: 'bar' | 'line' | 'progress_calendar';
+  data: {
+    taskCounts?: number[];
+    markFinishedDates?: string[];
+    lineData?: any[];
+    onMonthChange?: (month: Date) => void;
+    spacing?: number;
+    width?: number;
+  };
+  type?: "bar" | "line" | "progress_calendar";
 }
 
-const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
+const StatsView = ({ title, data, type = "bar" }: StatsViewProps) => {
   let chartComponent = null;
   switch (type) {
-    case 'bar':
-      chartComponent = <View className="py-4"><BarChartView taskCounts={data.taskCounts ?? []} /></View>;
+    case "bar":
+      chartComponent = (
+        <View className="py-4">
+          <BarChartView taskCounts={data.taskCounts ?? []} />
+        </View>
+      );
       break;
 
-    case 'line':
-      chartComponent = <Text>Coming soon...</Text>;
+    case "line":
+      chartComponent = (
+        <View className="py-4">
+          <MoodLineChart
+            lineData={data.lineData ?? []}
+            spacing={data.spacing}
+            width={data.width}
+          />
+        </View>
+      );
       break;
 
-    case 'progress_calendar':
-      chartComponent = <View className="pb-2"><CalendarView markFinishedDates={data.markFinishedDates ?? []} onMonthChange={data.onMonthChange} /></View>;
+    case "progress_calendar":
+      chartComponent = (
+        <View className="pb-2">
+          <CalendarView
+            markFinishedDates={data.markFinishedDates ?? []}
+            onMonthChange={data.onMonthChange}
+          />
+        </View>
+      );
       break;
 
     default:
@@ -137,7 +261,7 @@ const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
   }
 
   let filterText = "This Week";
-  if (type === 'progress_calendar') {
+  if (type === "progress_calendar") {
     filterText = "This Month";
   }
 
@@ -158,29 +282,83 @@ const StatsView = ({ title, data, type = 'bar' }: StatsViewProps) => {
             </View>
             <Divider className="bg-gray-100" />
           </View>
-          <View>
-            {chartComponent}
-          </View>
+          <View>{chartComponent}</View>
         </View>
       </View>
     </>
   );
-}
+};
+
+const MoodLineChart = ({
+  lineData,
+  spacing = 40,
+  width = 300,
+}: {
+  lineData: any[];
+  spacing?: number;
+  width?: number;
+}) => {
+  // Emojis: ["😎", "😊", "😐", "😢", "😡"]
+  // Indices: 0, 1, 2, 3, 4
+  // Values: 4, 3, 2, 1, 0
+  // Y-Axis Labels should be mapped from value.
+  // 0 -> 😡 (index 4)
+  // 1 -> 😢 (index 3)
+  // 2 -> 😐 (index 2)
+  // 3 -> 😊 (index 1)
+  // 4 -> 😎 (index 0)
+  console.log("MoodLineChart data:", lineData);
+  const yAxisLabelTexts = [" ", "😡", "😢", "😐", "😊", "😎", " "];
+
+  return (
+    <View style={{ borderRadius: 10, overflow: "hidden" }}>
+      <LineChart
+        data={lineData}
+        areaChart
+        curved
+        isAnimated
+        animationDuration={1200}
+        startFillColor="#8985e8"
+        startOpacity={0.2}
+        endFillColor="#ffffff"
+        endOpacity={0.1}
+        color="#8985e8"
+        thickness={3}
+        dataPointsColor="#8985e8"
+        dataPointsRadius={6}
+        dataPointsColor2="#8985e8"
+        textFontSize={10}
+        hideRules
+        yAxisLabelTexts={yAxisLabelTexts}
+        yAxisOffset={0}
+        maxValue={6}
+        stepValue={1}
+        noOfSections={4}
+        yAxisTextStyle={{ fontSize: 16 }} // Make emojis visible
+        width={width} // Adjust as needed
+        spacing={spacing} // Adjust spacing
+        initialSpacing={20}
+        backgroundColor="transparent"
+      />
+    </View>
+  );
+};
 
 const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
   const [pressedBarIndex, setPressedBarIndex] = useState(-1);
   const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const { width } = useWindowDimensions();
   const initialSpacing = 10;
-  const barWidth = (width * 0.85 - initialSpacing) * 3 / (taskCounts.length * 4);
+  const barWidth =
+    ((width * 0.85 - initialSpacing) * 3) / (taskCounts.length * 4);
   const spacing = barWidth / 3;
 
   const barData = taskCounts.map((count, index) => {
     return {
       value: count,
-      frontColor: index === pressedBarIndex ? '#8985e8' : '#c5c4f4',
+      frontColor: index === pressedBarIndex ? "#8985e8" : "#c5c4f4",
       label: labels[index],
-      labelTextStyle: { color: 'gray' },
+      labelTextStyle: { color: "gray" },
       topLabelComponent: () => {
         if (index === pressedBarIndex) {
           return (
@@ -192,11 +370,13 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
                   height: barWidth * 1.2,
                 }}
               >
-                <View className="items-center justify-center rounded-full bg-white"
+                <View
+                  className="items-center justify-center rounded-full bg-white"
                   style={{
                     width: barWidth * 1.0,
-                    height: barWidth * 1.0
-                  }}>
+                    height: barWidth * 1.0,
+                  }}
+                >
                   <Text className="text-[14px] font-bold">{count}</Text>
                   <Text className="text-[6px]">tasks</Text>
                 </View>
@@ -204,7 +384,7 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
               <View
                 className="w-2.5 h-2.5 bg-[#8985e8]"
                 style={{
-                  transform: [{ rotate: '45deg' }],
+                  transform: [{ rotate: "45deg" }],
                   marginTop: -6,
                   zIndex: -1,
                 }}
@@ -214,7 +394,7 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
         }
         return null;
       },
-    }
+    };
   });
 
   return (
@@ -228,11 +408,13 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       spacing={spacing}
       barWidth={barWidth}
       noOfSections={3}
-      maxValue={Math.max(...taskCounts) + 3 < 5 ? 5 : Math.max(...taskCounts) + 3}
+      maxValue={
+        Math.max(...taskCounts) + 3 < 5 ? 5 : Math.max(...taskCounts) + 3
+      }
       barBorderTopLeftRadius={barWidth / 2}
       barBorderTopRightRadius={barWidth / 2}
-      yAxisTextStyle={{ color: 'gray' }}
-      rulesColor={'transparent'}
+      yAxisTextStyle={{ color: "gray" }}
+      rulesColor={"transparent"}
       onPress={(item: any, index: number) => {
         if (taskCounts[index] === 0) {
           return;
@@ -245,16 +427,18 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       }}
       onBackgroundPress={() => setPressedBarIndex(-1)}
     />
-  )
-}
-
+  );
+};
 
 interface CalendarViewProps {
   markFinishedDates: string[];
   onMonthChange?: (month: Date) => void;
 }
 
-const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) => {
+const CalendarView = ({
+  markFinishedDates,
+  onMonthChange,
+}: CalendarViewProps) => {
   const markedDates: { [date: string]: { marked: boolean } } = {
     // '2025-08-27': { marked: true },
     // '2025-08-28': { marked: true }
@@ -266,37 +450,47 @@ const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) =
   return (
     <Calendar
       className="rounded-lg"
-      theme={{
-        'stylesheet.calendar.header': {
-          dayTextAtIndex0: {
-            color: 'black'
+      theme={
+        {
+          "stylesheet.calendar.header": {
+            dayTextAtIndex0: {
+              color: "black",
+            },
+            dayTextAtIndex1: {
+              color: "black",
+            },
+            dayTextAtIndex2: {
+              color: "black",
+            },
+            dayTextAtIndex3: {
+              color: "black",
+            },
+            dayTextAtIndex4: {
+              color: "black",
+            },
+            dayTextAtIndex5: {
+              color: "black",
+            },
+            dayTextAtIndex6: {
+              color: "black",
+            },
           },
-          dayTextAtIndex1: {
-            color: 'black'
-          },
-          dayTextAtIndex2: {
-            color: 'black'
-          },
-          dayTextAtIndex3: {
-            color: 'black'
-          },
-          dayTextAtIndex4: {
-            color: 'black'
-          },
-          dayTextAtIndex5: {
-            color: 'black'
-          },
-          dayTextAtIndex6: {
-            color: 'black'
-          }
-        },
-        textMonthFontWeight: 'bold',
-        textDayFontWeight: 'bold',
-        dayTextColor: 'black',
-        textDayHeaderFontWeight: 'bold',
-      }}
+          textMonthFontWeight: "bold",
+          textDayFontWeight: "bold",
+          dayTextColor: "black",
+          textDayHeaderFontWeight: "bold",
+        } as any
+      }
       renderArrow={(direction) =>
-        direction === 'left' ? <View style={{ transform: [{ translateX: -15 }] }}><ChevronLeftIcon /></View> : <View style={{ transform: [{ translateX: 15 }] }}><ChevronRightIcon /></View>
+        direction === "left" ? (
+          <View style={{ transform: [{ translateX: -15 }] }}>
+            <ChevronLeftIcon />
+          </View>
+        ) : (
+          <View style={{ transform: [{ translateX: 15 }] }}>
+            <ChevronRightIcon />
+          </View>
+        )
       }
       markedDates={markedDates}
       dayComponent={({ date, marking, state }) => {
@@ -305,7 +499,7 @@ const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) =
           <ProgressCircle
             progressPercent={isMarked ? 100 : 0}
             displayText={date?.day?.toString() ?? ""}
-            textColor={state === 'disabled' ? 'lightgray' : 'black'}
+            textColor={state === "disabled" ? "lightgray" : "black"}
           />
         );
       }}
@@ -313,16 +507,20 @@ const CalendarView = ({ markFinishedDates, onMonthChange }: CalendarViewProps) =
         onMonthChange && onMonthChange(new Date(month.dateString));
       }}
     />
-  )
-}
-
+  );
+};
 
 export default function HomeScreen() {
   return (
     <View className="flex-1">
-      <ScrollView className="gap-2" showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="gap-2"
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+      >
         <WeeklyChart />
         <MonthlyCalendar />
+        <MoodChart />
       </ScrollView>
     </View>
   );

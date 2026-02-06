@@ -1,0 +1,105 @@
+# routine-tracker Codebase Guide for Agents
+
+This document provides essential information for AI agents working on the `routine-tracker` repository.
+
+## 1. Project Overview
+
+*   **Type:** React Native mobile application using Expo.
+*   **Language:** TypeScript.
+*   **Frameworks:** Expo Router, NativeWind (Tailwind CSS), Gluestack UI.
+*   **State Management:** Zustand (persisted via AsyncStorage).
+*   **Navigation:** Expo Router (file-based routing in `app/`).
+
+## 2. Build, Lint, and Test Commands
+
+### Build & Run
+*   **Start Development Server:** `yarn start` (or `npm start`)
+*   **Run on Android:** `yarn android`
+*   **Run on iOS:** `yarn ios`
+*   **Run on Web:** `yarn web`
+
+### Linting & Formatting
+*   **Lint Code:** `yarn lint` (Runs `expo lint` with ESLint)
+*   **Format Code:** Uses Prettier. Ensure your editor or pre-commit hooks handle formatting, or run `npx prettier --write .` if unsure.
+
+### Testing
+*   **Status:** There are currently **NO** automated tests configured in this project.
+*   **Action for Agents:**
+    *   Since no test harness exists, verify your changes by carefully analyzing the logic and, if possible, simulating the flow mentally.
+    *   Do not attempt to run `npm test` or `yarn test` as they will fail or do nothing.
+    *   If you are implementing a complex logic, consider proposing the addition of a testing framework (like Jest + React Native Testing Library) to the user.
+
+## 3. Code Style Guidelines
+
+### General
+*   **Strictness:** The project uses `strict: true` in `tsconfig.json`. Ensure all types are explicitly defined; avoid `any` unless absolutely necessary.
+*   **Functional Components:** Use functional components with hooks for all UI elements.
+*   **Imports:**
+    *   Use absolute imports with the `@` alias (e.g., `import { Foo } from "@/components/Foo"`).
+    *   Group imports: External libraries first, then internal components/services.
+
+### Naming Conventions
+*   **Files:** `kebab-case` for general files, `PascalCase` for React components if they are the main export (though standard Expo structure often uses kebab-case for files like `index.tsx`).
+    *   *Note:* The current codebase mixes conventions (e.g., `store/candyStore.ts` vs `components/ui/vstack/index.tsx`). Follow the prevailing pattern in the specific directory you are working in.
+*   **Components:** `PascalCase` (e.g., `RoutineTask`, `CandyProvider`).
+*   **Functions/Hooks:** `camelCase` (e.g., `useColorScheme`, `scheduleNotifications`).
+*   **Variables:** `camelCase`.
+*   **Interfaces/Types:** `PascalCase` (e.g., `RoutineTask`, `CandyState`).
+
+### Styling (NativeWind + Gluestack)
+*   Use **NativeWind** (Tailwind classes) for layout and standard styling.
+    *   Example: `<View className="flex-1 bg-white p-4">`
+*   Use **Gluestack UI** components for accessible primitives (Box, VStack, Text, Button, etc.).
+    *   Example: `import { Box } from "@/components/ui/box";`
+    *   Check `gluestack-ui.config.json` and `global.css` for theme configurations.
+
+### State Management (Zustand)
+*   Stores are located in `store/`.
+*   Use the `create` function from `zustand` and `persist` middleware for data that needs to survive restarts.
+*   Define interfaces for State and Actions separately if complex.
+    ```typescript
+    interface MyState { count: number }
+    interface MyActions { increment: () => void }
+    // ...
+    ```
+
+### Error Handling
+*   Use `try/catch` blocks for async operations, especially those involving API calls or `AsyncStorage`.
+*   Log errors using the custom logger service: `import log from "@/services/logger";`
+*   Avoid `console.log` in production code; use the logger.
+
+## 4. Project Structure
+
+*   `app/`: Expo Router pages. `_layout.tsx` defines the root layout and providers. `(tabs)/` contains tab-based navigation.
+*   `components/`: Reusable UI components.
+    *   `ui/`: Gluestack UI primitives.
+*   `hooks/`: Custom React hooks (e.g., `useColorScheme`).
+*   `services/`: Business logic, API calls, logging, notifications.
+*   `store/`: Zustand state stores.
+*   `constants/`: App-wide constants (colors, layout settings).
+*   `assets/`: Images, fonts, and other static files.
+
+## 5. Development Workflow for Agents
+
+1.  **Analyze:** Before making changes, scan the relevant files to understand existing patterns. Use `grep` or `glob` to find usage examples.
+2.  **Plan:** Formulate a plan. Since there are no tests, be extra thorough in your logic verification.
+3.  **Implement:** Write code that matches the existing style (NativeWind + Gluestack, Zustand, TypeScript).
+4.  **Verify:** Run `yarn lint` to catch static analysis errors. Ensure types check out.
+
+## 6. Specific Rules (Cursor/Copilot)
+
+*   **Restricted Directories:** Do **NOT** edit any files in `components/ui/`.
+    *   These are standard Gluestack UI components.
+    *   If you need to customize a component, wrap it in a new component in `components/` or override styles via props, but do not modify the core files in this directory.
+*   *No specific `.cursorrules` or `.github/copilot-instructions.md` found.*
+*   Adhere to the general guidelines above.
+
+## 7. Dependencies Note
+
+*   **Expo:** ~53.0.20
+*   **React Native:** 0.79.5
+*   **React:** 19.0.0
+*   **Gluestack UI:** v1
+*   **NativeWind:** v4
+
+Always check `package.json` for the exact versions before assuming API availability.
