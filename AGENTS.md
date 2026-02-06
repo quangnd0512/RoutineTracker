@@ -52,6 +52,7 @@ This document provides essential information for AI agents working on the `routi
 *   Use **Gluestack UI** components for accessible primitives (Box, VStack, Text, Button, etc.).
     *   Example: `import { Box } from "@/components/ui/box";`
     *   Check `gluestack-ui.config.json` and `global.css` for theme configurations.
+*   **Shadows:** Avoid using `shadow-*` utility classes (e.g., `shadow-md`, `shadow-lg`) from NativeWind as they can cause issues with Expo Router/Navigation on some platforms. Instead, use React Native's `StyleSheet` or the `style` prop with native shadow properties (`shadowColor`, `shadowOffset`, `shadowOpacity`, `elevation`, etc.).
 *   **Design Philosophy:** Follow a **minimalist design system** for all future modifications. Avoid clutter, excessive colors, or complex UI elements unless necessary. Prioritize clean, whitespace-heavy, and simple interfaces.
 
 ### State Management (Zustand)
