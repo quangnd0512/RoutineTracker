@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
 
-const DAYS_OF_WEEK = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MOOD_LABELS = ["Great", "Good", "Okay", "Not Good", "Bad"];
 
 export default function MoodScreen() {

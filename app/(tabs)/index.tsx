@@ -120,31 +120,9 @@ const WeeklyChart = () => {
 };
 
 const MoodChart = () => {
-  const { getMoodLog, addMoodLog, moodLogs } = useMoodStore();
+  const { getMoodLog } = useMoodStore();
   const [lineData, setLineData] = useState<any[]>([]);
   const { width } = useWindowDimensions();
-
-  // Seed test data if empty
-  useEffect(() => {
-    if (moodLogs.length === 0) {
-      const _now = new Date();
-      let weekDay = _now.getDay(); // 0 (Sun) to 6 (Sat)
-      if (weekDay === 0) weekDay = 7;
-
-      // Seed previous days of this week
-      for (let i = 1; i <= weekDay; i++) {
-        const atDate = new Date(_now);
-        atDate.setDate(_now.getDate() - weekDay + i);
-        const dateStr = atDate.toISOString().split("T")[0];
-
-        // Random mood 1-5
-        addMoodLog({
-          date: dateStr,
-          moodIndex: Math.floor(Math.random() * 5) + 1,
-        });
-      }
-    }
-  }, [moodLogs, addMoodLog]);
 
   useFocusEffect(
     useCallback(() => {
@@ -161,31 +139,27 @@ const MoodChart = () => {
       for (let i = 0; i < 7; i++) {
         const atDate = new Date(startOfWeek);
         atDate.setDate(startOfWeek.getDate() + i);
-        const dateStr = atDate.toISOString().split("T")[0];
+        const dateStr = `${atDate.getFullYear()}-${String(
+          atDate.getMonth() + 1,
+        ).padStart(2, "0")}-${String(atDate.getDate()).padStart(2, "0")}`;
         const log = getMoodLog(dateStr);
         const dayLabel = dayLabels[i];
 
         if (log) {
           data.push({
-            value: (4 - log.moodIndex) + 1, // Invert: Great(0)->4, Bad(4)->0
+            value: 4 - log.moodIndex + 1, // Invert: Great(0)->5, Bad(4)->1
             label: dayLabel,
             labelTextStyle: { color: "gray" },
             dataPointText: "",
           });
         } else {
-          // For future days or days with no data, we push a point to maintain X-axis structure
-          // But we can try to hide it or set value to 0
-          // Since we can't easily break the line, let's set it to 0 (Bad) but hide data point
-          // This ensures Mon is at start and Sun is at end.
+          // For future days or days with no data
           data.push({
-            value: 1, // Corresponds to "Bad" mood
+            value: 1, 
             label: dayLabel,
             labelTextStyle: { color: "gray" },
             hideDataPoint: true,
             customDataPoint: () => null,
-            // Using a transparent color might hide the line segment if supported per-point?
-            // Unfortunately usually not.
-            // But this satisfies "Mon at start and Sun at end" structure.
           });
         }
       }
@@ -307,17 +281,17 @@ const MoodLineChart = ({
   // 2 -> 😐 (index 2)
   // 3 -> 😊 (index 1)
   // 4 -> 😎 (index 0)
-  console.log("MoodLineChart data:", lineData);
-  const yAxisLabelTexts = [" ", "😡", "😢", "😐", "😊", "😎", " "];
+  // console.log("MoodLineChart data:", lineData);
+  const yAxisLabelTexts = [" ", "😡", "😢", "😐", "😊", "😎"];
 
   return (
-    <View style={{ borderRadius: 10, overflow: "hidden" }}>
+    <View style={{ borderRadius: 10, overflow: "hidden" }} className="py-3">
       <LineChart
         data={lineData}
         areaChart
         curved
-        isAnimated
-        animationDuration={1200}
+        // isAnimated
+        // animationDuration={1200}
         startFillColor="#8985e8"
         startOpacity={0.2}
         endFillColor="#ffffff"
@@ -331,10 +305,10 @@ const MoodLineChart = ({
         hideRules
         yAxisLabelTexts={yAxisLabelTexts}
         yAxisOffset={0}
-        maxValue={6}
+        maxValue={5}
         stepValue={1}
         noOfSections={4}
-        yAxisTextStyle={{ fontSize: 16 }} // Make emojis visible
+        yAxisTextStyle={{ fontSize: 24 }} // Make emojis visible
         width={width} // Adjust as needed
         spacing={spacing} // Adjust spacing
         initialSpacing={20}
