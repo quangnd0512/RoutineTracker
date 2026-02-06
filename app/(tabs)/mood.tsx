@@ -9,18 +9,30 @@ import { Pressable } from "@/components/ui/pressable";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  PlusIcon,
   SmileIcon,
 } from "lucide-react-native";
 import { Emojis } from "@/constants/Moods";
 import { useMoodStore } from "@/store/moodStore";
-import { Center } from "@/components/ui/center";
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from "@/components/ui/actionsheet";
+import { Button, ButtonText } from "@/components/ui/button";
 
 const DAYS_OF_WEEK = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const MOOD_LABELS = ["Great", "Good", "Okay", "Not Good", "Bad"];
 
 export default function MoodScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { getMoodLog } = useMoodStore();
+  const [showActionsheet, setShowActionsheet] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedMoodIndex, setSelectedMoodIndex] = useState<number | null>(null);
+
+  const { getMoodLog, addMoodLog } = useMoodStore();
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -47,6 +59,28 @@ export default function MoodScreen() {
     return date.toLocaleString("default", { month: "long", year: "numeric" });
   };
 
+  const handleDayPress = (day: number) => {
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    
+    // Verify if it is today (or allow any day - sticking to 'today' emphasis from prompt but allowing interaction for now)
+    // For a tracker, usually you can log past days. I'll allow it.
+    
+    const log = getMoodLog(dateStr);
+    setSelectedDate(dateStr);
+    setSelectedMoodIndex(log ? log.moodIndex : null); // Pre-select if exists, else null
+    setShowActionsheet(true);
+  };
+
+  const handleSaveMood = () => {
+    if (selectedMoodIndex !== null && selectedDate) {
+      addMoodLog({
+        date: selectedDate,
+        moodIndex: selectedMoodIndex,
+      });
+      setShowActionsheet(false);
+    }
+  };
+
   const renderCalendar = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -66,19 +100,26 @@ export default function MoodScreen() {
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const log = getMoodLog(dateStr);
+      const isToday = dateStr === new Date().toISOString().split("T")[0];
 
       cells.push(
         <Pressable
           key={`day-${day}`}
+          onPress={() => handleDayPress(day)}
           className="w-[14.28%] aspect-[0.7] items-center justify-center mb-4"
         >
-          <VStack className="items-center justify-between h-full py-1">
+          <VStack className={`items-center justify-between h-full py-1`}>
             <Box className="items-center justify-center flex-1">
               {log ? (
                 <Box className="w-8 h-8 rounded-full items-center justify-center">
                   <Text className="text-3xl text-center leading-none">
                     {Emojis[log.moodIndex]}
                   </Text>
+                </Box>
+              ) : isToday ?
+              (
+                <Box className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center bg-gray-50">
+                  <Icon as={PlusIcon} size="md" className="text-gray-300" />
                 </Box>
               ) : (
                 <Box className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center bg-gray-50">
@@ -134,6 +175,64 @@ export default function MoodScreen() {
         </HStack>
 
         <Box className="flex-row flex-wrap">{renderCalendar()}</Box>
+
+        <Actionsheet
+          isOpen={showActionsheet}
+          onClose={() => setShowActionsheet(false)}
+        >
+          <ActionsheetBackdrop />
+          <ActionsheetContent className="pb-8">
+            <ActionsheetDragIndicatorWrapper>
+              <ActionsheetDragIndicator />
+            </ActionsheetDragIndicatorWrapper>
+            
+            <Text size="xl" className="font-bold mb-6 mt-2">
+              How is your mood today?
+            </Text>
+
+            <HStack className="justify-between w-full px-2 mb-8">
+              {MOOD_LABELS.map((label, index) => (
+                <Pressable
+                  key={index}
+                  onPress={() => setSelectedMoodIndex(index)}
+                  className="items-center"
+                >
+                  <Box
+                    className={`w-14 h-14 rounded-full items-center justify-center mb-2 ${
+                      selectedMoodIndex === index
+                        ? "bg-[#8882E7] border-1 border-primary-50"
+                        : "bg-gray-50"
+                    }`}
+                  >
+                    <Text className="text-3xl">{Emojis[index]}</Text>
+                  </Box>
+                  <Text
+                    size="sm"
+                    className={`${
+                      selectedMoodIndex === index
+                        ? "text-primary-600 font-bold"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </HStack>
+
+            <Button
+              className="w-full rounded-full h-12 bg-[#8882E7]"
+              onPress={handleSaveMood}
+              isDisabled={selectedMoodIndex === null}
+            >
+              <ButtonText className="text-white font-bold text-lg">
+                {selectedMoodIndex !== null
+                  ? `I Feel ${MOOD_LABELS[selectedMoodIndex]}!`
+                  : "Select a Mood"}
+              </ButtonText>
+            </Button>
+          </ActionsheetContent>
+        </Actionsheet>
       </Box>
     </ScrollView>
   );
