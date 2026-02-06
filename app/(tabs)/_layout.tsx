@@ -14,13 +14,13 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   const colorStyle = (focused: boolean) => {
-    return focused ? "text-[#0a7ea4]" : "text-[#8E8E8F]";
+    return focused ? "text-[#8882e7]" : "text-[#8E8E8F]";
   }
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: "#8882e7",
         headerShown: true,
         header: ({ options }) => <Header title={options.title ?? ''} />,
         tabBarButton: HapticTab,
