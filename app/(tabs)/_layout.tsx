@@ -50,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mood"
         options={{
-          title: 'Mood Trackers',
+          title: 'Moods',
           tabBarIcon: ({ focused }) => <Icon as={SmilePlusIcon} className={colorStyle(focused)} />,
         }}
       />
