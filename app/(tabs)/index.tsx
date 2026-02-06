@@ -11,7 +11,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { BarChart, LineChart } from "react-native-gifted-charts";
@@ -26,14 +26,16 @@ const MonthlyCalendar = () => {
       markDate = onDate;
     }
 
-    const TaskDates = [];
+    const datesToFetch: Date[] = [];
     for (let i = 1; i <= 31; i++) {
       const date = new Date(markDate);
       date.setDate(i);
-      TaskDates.push(RoutineTaskService.getFinishedRoutineTasks(date));
+      datesToFetch.push(date);
     }
 
-    const results = await Promise.all(TaskDates);
+    const results = await RoutineTaskService.getFinishedRoutineTasksForDates(
+      datesToFetch,
+    );
     const finishedDates = results
       .map((res, index) => {
         if (res.length > 0) {
@@ -86,16 +88,18 @@ const WeeklyChart = () => {
     let weekDay = _now.getDay(); // 0 (Sun) to 6 (Sat)
     if (weekDay === 0) weekDay = 7; // Make Sunday the last day
 
-    const tasks = [];
+    const datesToFetch: Date[] = [];
 
     for (let i = 1; i <= weekDay; i++) {
       const atDate = new Date(_now);
       atDate.setDate(_now.getDate() - weekDay + i);
 
-      tasks.push(RoutineTaskService.getFinishedRoutineTasks(atDate));
+      datesToFetch.push(atDate);
     }
 
-    const results = await Promise.all(tasks);
+    const results = await RoutineTaskService.getFinishedRoutineTasksForDates(
+      datesToFetch,
+    );
     const counts = results.map((res) => res.length);
 
     while (counts.length < 7) {
@@ -120,53 +124,51 @@ const WeeklyChart = () => {
 };
 
 const MoodChart = () => {
-  const { getMoodLog } = useMoodStore();
-  const [lineData, setLineData] = useState<any[]>([]);
+  const moodLogs = useMoodStore((state) => state.moodLogs);
   const { width } = useWindowDimensions();
 
-  useFocusEffect(
-    useCallback(() => {
-      const _now = new Date();
-      const currentDay = _now.getDay() === 0 ? 7 : _now.getDay(); // 1-7 (Mon-Sun)
+  const lineData = useMemo(() => {
+    const _now = new Date();
+    const currentDay = _now.getDay() === 0 ? 7 : _now.getDay(); // 1-7 (Mon-Sun)
 
-      const data = [];
-      const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const data = [];
+    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-      // Calculate start of week (Monday)
-      const startOfWeek = new Date(_now);
-      startOfWeek.setDate(_now.getDate() - currentDay + 1);
+    // Calculate start of week (Monday)
+    const startOfWeek = new Date(_now);
+    startOfWeek.setDate(_now.getDate() - currentDay + 1);
 
-      for (let i = 0; i < 7; i++) {
-        const atDate = new Date(startOfWeek);
-        atDate.setDate(startOfWeek.getDate() + i);
-        const dateStr = `${atDate.getFullYear()}-${String(
-          atDate.getMonth() + 1,
-        ).padStart(2, "0")}-${String(atDate.getDate()).padStart(2, "0")}`;
-        const log = getMoodLog(dateStr);
-        const dayLabel = dayLabels[i];
+    for (let i = 0; i < 7; i++) {
+      const atDate = new Date(startOfWeek);
+      atDate.setDate(startOfWeek.getDate() + i);
+      const dateStr = `${atDate.getFullYear()}-${String(
+        atDate.getMonth() + 1,
+      ).padStart(2, "0")}-${String(atDate.getDate()).padStart(2, "0")}`;
+      
+      const log = moodLogs.find((l) => l.date === dateStr);
+      const dayLabel = dayLabels[i];
 
-        if (log) {
-          data.push({
-            value: 4 - log.moodIndex + 1, // Invert: Great(0)->5, Bad(4)->1
-            label: dayLabel,
-            labelTextStyle: { color: "gray" },
-            dataPointText: "",
-          });
-        } else {
-          // For future days or days with no data
-          data.push({
-            value: 1, 
-            label: dayLabel,
-            labelTextStyle: { color: "gray" },
-            hideDataPoint: true,
-            customDataPoint: () => null,
-          });
-        }
+      if (log) {
+        data.push({
+          value: 4 - log.moodIndex + 1, // Invert: Great(0)->5, Bad(4)->1
+          label: dayLabel,
+          labelTextStyle: { color: "gray" },
+          dataPointText: "",
+        });
+      } else {
+        // For future days or days with no data
+        data.push({
+          value: 1,
+          label: dayLabel,
+          labelTextStyle: { color: "gray" },
+          hideDataPoint: true,
+          customDataPoint: () => null,
+        });
       }
+    }
 
-      setLineData(data);
-    }, [getMoodLog]),
-  );
+    return data;
+  }, [moodLogs]);
 
   // Calculate spacing to fit 7 points exactly in the width
   // Total width available = Screen Width - Padding (e.g. 40 or 60)

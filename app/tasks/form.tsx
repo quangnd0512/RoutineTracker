@@ -1,15 +1,12 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import emojis from '@/assets/data/emoji.json';
-import { Calendar } from 'react-native-calendars';
+import React, { useLayoutEffect } from 'react';
+import { ScrollView, View } from 'react-native';
 import { VStack } from '@/components/ui/vstack';
 import { Box } from '@/components/ui/box';
 import { Input, InputField } from '@/components/ui/input';
 import { HStack } from '@/components/ui/hstack';
 import { Pressable } from '@/components/ui/pressable';
 import { Button, ButtonText } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { Heading } from '@/components/ui/heading';
 import { Icon } from '@/components/ui/icon';
@@ -18,7 +15,6 @@ import log from '@/services/logger';
 import { useForm, Controller } from "react-hook-form"
 import { Grid, GridItem } from '@/components/ui/grid';
 import { Checkbox, CheckboxIcon, CheckboxIndicator } from '@/components/ui/checkbox';
-import { RoutineTask } from '@/store/candyStore';
 import { useCandyContext } from '@/store/context';
 
 const COLORS = [
@@ -41,7 +37,11 @@ const COLORS = [
   '#5be2f7',
 ];
 
-const ColorInput = ({ control, errors }: { control: any, errors: any }) => {
+const RANDOM_EMOJIS = ["☂️", "🎓", "💼", "🧳", "👑", "🏄🏻‍♂️", "🐓", "🏯", "💳", "💞", "🫎",
+  "🩻", "🗓", "💎", "🗑", "❤️‍🔥", "🫅", "⚒", "💻", "⌚️"
+];
+
+const ColorInput = React.memo(({ control }: { control: any, errors: any }) => {
 
   return (
     <Controller
@@ -77,14 +77,13 @@ const ColorInput = ({ control, errors }: { control: any, errors: any }) => {
       )}
     />
   );
-}
+});
+ColorInput.displayName = 'ColorInput';
 
-const DoItAtInput = ({ control, errors }: { control: any, errors: any }) => {
+const DoItAtInput = React.memo(({ control }: { control: any, errors: any }) => {
   const options = ['morning', 'afternoon', 'evening'];
 
   const DoItAtView = ({ value, onChange }: { value: string | null, onChange: (value: string | null) => void }) => {
-    const [doItAt, setDoItAt] = useState<string | null>(value);
-
     return (
       <View>
         <Box>
@@ -95,11 +94,10 @@ const DoItAtInput = ({ control, errors }: { control: any, errors: any }) => {
                 <Button
                   key={option}
                   onPress={() => {
-                    setDoItAt(option);
                     onChange(option);
                   }}
-                  className={`${doItAt === option ? 'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
-                  variant={doItAt === option ? 'solid' : 'outline'}
+                  className={`${value === option ? 'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
+                  variant={value === option ? 'solid' : 'outline'}
                   size='sm'>
                   <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
                 </Button>
@@ -120,11 +118,10 @@ const DoItAtInput = ({ control, errors }: { control: any, errors: any }) => {
       )}
     />
   );
-}
+});
+DoItAtInput.displayName = 'DoItAtInput';
 
-const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
-  const [repeat, setRepeat] = useState('daily');
-  // const [rValues, setRepeatValues] = useState<string[]>(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const RepeatInput = React.memo(({ control }: { control: any, errors: any }) => {
   const options = ['daily', 'weekly', 'monthly'];
 
   const RepeatOptionView = ({ repeatType, onChange }: { repeatType: string, onChange: (value: string) => void }) => {
@@ -137,8 +134,6 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
               <Button
                 key={option}
                 onPress={() => {
-                  setRepeat(option);
-                  // setRepeatValues([]);
                   onChange(option);
                 }}
                 disabled={true}
@@ -156,7 +151,7 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
   }
 
   const RepeatValuesView = ({ repeatValues, onChange }: { repeatValues: string[], onChange: (values: string[]) => void }) => {
-    const [allDay, setAllDay] = useState(repeatValues.length === 7);
+    const allDay = repeatValues.length === 7;
     return (
       <Box>
         <View className='flex-row items-center justify-between my-2'>
@@ -164,7 +159,6 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
           <View className='flex-row items-center'>
             <Text className='text-gray-400 mr-2'>All day</Text>
             <Checkbox value='all-day' isChecked={allDay} onChange={(val) => {
-              setAllDay(val);
               if (val) {
                 onChange(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
               } else {
@@ -191,12 +185,7 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
                   } else {
                     newValues.push(day);
                   }
-                  if (newValues.length === 7) {
-                    setAllDay(true);
-                  } else {
-                    setAllDay(false);
-                  }
-
+                  
                   onChange(newValues);
                 }}
                 className={`flex-1 border-[1px] items-center justify-center rounded-lg w-12 h-12 ${allDay || repeatValues.includes(day) ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-gray-300'}`}
@@ -219,24 +208,27 @@ const RepeatInput = ({ control, errors }: { control: any, errors: any }) => {
           <RepeatOptionView repeatType={value} onChange={onChange} />
         )}
       />
-      {repeat === 'daily' && (
-        <Controller
-          control={control}
-          name="repeatValues"
-          render={({ field: { onChange, value } }) => (
-            <RepeatValuesView repeatValues={value} onChange={onChange} />
-          )}
-        />
-      )}
+      <Controller
+        control={control}
+        name="repeat"
+        render={({ field: { value: repeatValue } }) => (
+           repeatValue === 'daily' ? (
+            <Controller
+              control={control}
+              name="repeatValues"
+              render={({ field: { onChange, value } }) => (
+                <RepeatValuesView repeatValues={value} onChange={onChange} />
+              )}
+            />
+          ) : <></>
+        )}
+      />
     </>
   );
-}
+});
+RepeatInput.displayName = 'RepeatInput';
 
-const IconInput = ({ control, errors }: { control: any, errors: any }) => {
-  // const [icon, setIcon] = useState(value);
-  const randomEmojis = ["☂️", "🎓", "💼", "🧳", "👑", "🏄🏻‍♂️", "🐓", "🏯", "💳", "💞", "🫎",
-    "🩻", "🗓", "💎", "🗑", "❤️‍🔥", "🫅", "⚒", "💻", "⌚️"
-  ];
+const IconInput = React.memo(({ control, errors }: { control: any, errors: any }) => {
 
   return (
     <Controller
@@ -249,7 +241,7 @@ const IconInput = ({ control, errors }: { control: any, errors: any }) => {
             <Heading size='lg'>Icon</Heading>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <HStack className='gap-2 my-4'>
-                {randomEmojis.map((e, index) => (
+                {RANDOM_EMOJIS.map((e, index) => (
                   <Pressable
                     key={e + index}
                     onPress={() => {
@@ -270,7 +262,8 @@ const IconInput = ({ control, errors }: { control: any, errors: any }) => {
       )}
     />
   );
-};
+});
+IconInput.displayName = 'IconInput';
 
 
 

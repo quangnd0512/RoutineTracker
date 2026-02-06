@@ -1,26 +1,20 @@
-import ConfirmDelete from '@/components/ConfirmDelete';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Box } from '@/components/ui/box';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox, CheckboxIcon, CheckboxIndicator, CheckboxLabel } from '@/components/ui/checkbox';
 import { Divider } from '@/components/ui/divider';
 import { Fab } from '@/components/ui/fab';
-import { Heading } from '@/components/ui/heading';
 import { Icon } from '@/components/ui/icon';
-import { Input, InputField } from '@/components/ui/input';
-import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from '@/components/ui/modal';
 import { RoutineTaskService } from '@/services/routineTaskService';
 import { useCandyContext } from '@/store/context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, FlatList, TouchableOpacity, View } from 'react-native';
-import { GestureHandlerRootView, PanGestureHandler, State, Swipeable } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import log from '@/services/logger';
 import { ArrowRightIcon, CheckIcon, PlusIcon, XIcon } from 'lucide-react-native';
-import StarIcon from '@/components/icons/StarIcon';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 
 type Task = {
@@ -43,7 +37,7 @@ type RoutineTaskProps = {
   onItemPress?: (taskId: string) => void;
 };
 
-const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onToggle, onToggleFavorite, onDelete, onSwipeableWillOpen, onClose, onItemPress }, ref) => {
+const RoutineTask = React.memo(React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onToggle, onToggleFavorite, onDelete, onSwipeableWillOpen, onClose, onItemPress }, ref) => {
   const SCREEN_WIDTH = Dimensions.get('window').width;
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -102,7 +96,7 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
     );
   };
 
-  const ItemView = ({ }) => {
+  const ItemView = () => {
     return (
       <Card className="mb-3 border-[1px] border-gray-50" style={{
         backgroundColor: task.color || 'white',
@@ -187,7 +181,7 @@ const RoutineTask = React.forwardRef<Swipeable, RoutineTaskProps>(({ task, onTog
       </Animated.View>
     </Swipeable>
   );
-});
+}));
 RoutineTask.displayName = 'RoutineTask';
 
 const DATE_NAME_DEFAULT_OPTIONS = ["Today", "Yesterday", "Other"];
@@ -197,13 +191,13 @@ interface FilterTaskProps {
   selectedDate: Date | null;
   onSelectedDateChange: (date: Date | null) => void;
 }
-const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateChange }) => {
+const FilterTask: React.FC<FilterTaskProps> = React.memo(({ selectedDate, onSelectedDateChange }) => {
 
   const [dateNames, setDateNames] = useState<string[]>(DATE_NAME_DEFAULT_OPTIONS);
   const [selectedDateName, setSelectedDateName] = useState<string>("Today");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const onDatePickerChange = (event: any, selectedDate?: Date) => {
+  const onDatePickerChange = useCallback((event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (event.type !== 'dismissed' && selectedDate) {
       onSelectedDateChange(selectedDate);
@@ -212,9 +206,9 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
       setDateNames(prevDates => [...prevDates.slice(0, prevDates.length - 1), dateString]);
       setSelectedDateName(dateString);
     }
-  };
+  }, [onSelectedDateChange]);
 
-  const onSelectItem = (name: string) => {
+  const onSelectItem = useCallback((name: string) => {
     const onDate = new Date();
 
     switch (name) {
@@ -235,9 +229,7 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
         setShowDatePicker(true);
         break;
     }
-
-    // Handle date filtering
-  }
+  }, [onSelectedDateChange]);
 
   return (
     <Box className='flex-row items-center mb-4'>
@@ -269,19 +261,17 @@ const FilterTask: React.FC<FilterTaskProps> = ({ selectedDate, onSelectedDateCha
       />
     </Box>
   );
-};
+});
+FilterTask.displayName = 'FilterTask';
 
 export default function TaskScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [isConfirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const openRowRef = useRef<Swipeable | null>(null);
   const [filteredOnDate, setFilteredOnDate] = useState<Date | null>(new Date());
   const router = useRouter();
 
   // Call useCandyContext at the top level of the component, not inside useEffect
   const routineTasks = useCandyContext(state => state.routineTasks);
-  const deleteRoutineTask = useCandyContext(state => state.deleteRoutineTask);
   const updateRoutineTask = useCandyContext(state => state.updateRoutineTask);
 
   useEffect(() => {

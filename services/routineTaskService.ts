@@ -76,6 +76,21 @@ export class RoutineTaskService {
         }
     }
 
+    public static async getFinishedRoutineTasksForDates(dates: Date[]): Promise<(string[])[]> {
+        log.info("[RoutineTaskService] Getting finished routine tasks for dates", { count: dates.length });
+        const keys = dates.map(date => this.genFinishedRoutineTaskOnDateKey(date));
+
+        try {
+            const results = await AsyncStorage.multiGet(keys);
+            // results is [ [key, value], [key, value] ]
+            return results.map(([_, value]) => (value ? JSON.parse(value) : []));
+        } catch (error) {
+            log.error("[RoutineTaskService] Error getting batch finished routine tasks", { error });
+            // Return empty arrays for all requested dates in case of error
+            return dates.map(() => []);
+        }
+    }
+
     public static async finishRoutineTask(taskId: string): Promise<void> {
         log.info(`[RoutineTaskService] Finishing routine task: ${taskId}`);
         const onDate = new Date();
