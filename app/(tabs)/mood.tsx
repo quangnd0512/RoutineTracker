@@ -113,7 +113,7 @@ export default function MoodScreen() {
               ]}
             >
               {log ? (
-                <Text className="text-2xl leading-none">
+                <Text className="text-2xl">
                   {Emojis[log.moodIndex]}
                 </Text>
               ) : isToday ? (
@@ -215,7 +215,7 @@ export default function MoodScreen() {
                     {label}
                   </Text>
                 </Pressable>
-              ))}
+              )).reverse()}
             </HStack>
 
             <View style={[styles.shadowMd, { width: '100%', borderRadius: 16 }]}>
