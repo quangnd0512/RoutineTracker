@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -10,7 +10,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
-  SmileIcon,
 } from "lucide-react-native";
 import { Emojis } from "@/constants/Moods";
 import { useMoodStore } from "@/store/moodStore";
@@ -25,6 +24,7 @@ import { Button, ButtonText } from "@/components/ui/button";
 
 const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MOOD_LABELS = ["Great", "Good", "Okay", "Not Good", "Bad"];
+const MOOD_COLORS = ["#D1FAE5", "#E0F2FE", "#F3F4F6", "#FEF3C7", "#FEE2E2"]; // Soft backgrounds for moods
 
 export default function MoodScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -62,12 +62,9 @@ export default function MoodScreen() {
   const handleDayPress = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     
-    // Verify if it is today (or allow any day - sticking to 'today' emphasis from prompt but allowing interaction for now)
-    // For a tracker, usually you can log past days. I'll allow it.
-    
     const log = getMoodLog(dateStr);
     setSelectedDate(dateStr);
-    setSelectedMoodIndex(log ? log.moodIndex : null); // Pre-select if exists, else null
+    setSelectedMoodIndex(log ? log.moodIndex : null);
     setShowActionsheet(true);
   };
 
@@ -84,15 +81,14 @@ export default function MoodScreen() {
   const renderCalendar = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
-    // Adjust for Monday start: Mon(1) -> 0, Sun(0) -> 6
     const startOffset = (firstDay + 6) % 7;
 
     const cells = [];
 
-    // Empty cells for previous month
+    // Empty cells
     for (let i = 0; i < startOffset; i++) {
       cells.push(
-        <Box key={`empty-${i}`} className="w-[14.28%] aspect-[0.7]" />,
+        <Box key={`empty-${i}`} className="w-[14.28%] aspect-square" />,
       );
     }
 
@@ -105,42 +101,36 @@ export default function MoodScreen() {
       cells.push(
         <Pressable
           key={`day-${day}`}
-          onPress={() => handleDayPress(day)}
-          className="w-[14.28%] aspect-[0.7] items-center justify-center mb-4"
+          onPress={() => isToday ? handleDayPress(day): {}}
+          className="w-[14.28%] aspect-square items-center justify-center mb-2"
         >
-          <VStack className={`items-center justify-between h-full py-1`}>
-            <Box className="items-center justify-center flex-1">
+          <VStack className="items-center justify-center w-full h-full">
+            <View
+              style={[
+                { width: 40, height: 40, borderRadius: 9999, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+                { backgroundColor: log ? MOOD_COLORS[log.moodIndex] : (isToday ? "#8882E7" : "#F9FAFB") },
+                isToday && !log ? styles.shadowSm : {}
+              ]}
+            >
               {log ? (
-                <Box className="w-8 h-8 rounded-full items-center justify-center">
-                  <Text className="text-3xl text-center leading-none">
-                    {Emojis[log.moodIndex]}
-                  </Text>
-                </Box>
-              ) : isToday ?
-              (
-                <Box className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center bg-gray-50">
-                  <Icon as={PlusIcon} size="md" className="text-gray-300" />
-                </Box>
+                <Text className="text-2xl leading-none">
+                  {Emojis[log.moodIndex]}
+                </Text>
+              ) : isToday ? (
+                <Icon as={PlusIcon} size="md" className="text-white" />
               ) : (
-                <Box className="w-8 h-8 rounded-full border border-gray-200 items-center justify-center bg-gray-50">
-                  <Icon as={SmileIcon} size="md" className="text-gray-300" />
-                </Box>
+                <Text className="text-sm font-medium text-gray-400">{day}</Text>
               )}
-            </Box>
-
-            <Text
-              size="sm"
-              className={`${log ? "text-gray-600 font-bold" : "text-gray-400 font-medium"} text-center text-[8px] mt-1 mb-1`}
-            >
-              {log ? MOOD_LABELS[log.moodIndex] : "Mood"}
-            </Text>
-
-            <Text
-              size="md"
-              className={`text-center font-bold ${log ? "text-gray-900" : "text-gray-400"}`}
-            >
-              {day}
-            </Text>
+            </View>
+            
+            {(log || isToday) && (
+              <Text 
+                size="xs" 
+                className={`text-[10px] font-medium ${isToday ? "text-[#8882E7] font-bold" : "text-gray-400"}`}
+              >
+                {day}
+              </Text>
+            )}
           </VStack>
         </Pressable>,
       );
@@ -150,24 +140,30 @@ export default function MoodScreen() {
   };
 
   return (
-    <ScrollView className="flex-1  bg-white">
-      <Box className="p-4 bg-white min-h-full pb-20">
-        <HStack className="items-center justify-between mb-8 mt-2">
-          <Pressable onPress={handlePrevMonth} className="p-2">
-            <Icon as={ChevronLeftIcon} size="xl" className="text-gray-600" />
+    <ScrollView className="flex-1 bg-white" showsVerticalScrollIndicator={false}>
+      <Box className="p-6 bg-white min-h-full pb-20">
+        <HStack className="items-center justify-between mb-8 mt-4">
+          <Pressable 
+            onPress={handlePrevMonth} 
+            className="w-10 h-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100"
+          >
+            <Icon as={ChevronLeftIcon} size="lg" className="text-gray-600" />
           </Pressable>
-          <Text size="2xl" className="font-bold text-gray-900">
+          <Text size="2xl" className="font-bold text-gray-900 tracking-tight">
             {formatMonthYear(currentDate)}
           </Text>
-          <Pressable onPress={handleNextMonth} className="p-2">
-            <Icon as={ChevronRightIcon} size="xl" className="text-gray-600" />
+          <Pressable 
+            onPress={handleNextMonth} 
+            className="w-10 h-10 items-center justify-center rounded-full bg-gray-50 border border-gray-100"
+          >
+            <Icon as={ChevronRightIcon} size="lg" className="text-gray-600" />
           </Pressable>
         </HStack>
 
-        <HStack className="mb-4">
+        <HStack className="mb-4 border-b border-gray-100 pb-2">
           {DAYS_OF_WEEK.map((day) => (
             <Box key={day} className="w-[14.28%] items-center">
-              <Text size="md" className="font-bold text-gray-900">
+              <Text size="xs" className="font-bold text-gray-400 uppercase tracking-wider">
                 {day}
               </Text>
             </Box>
@@ -181,36 +177,38 @@ export default function MoodScreen() {
           onClose={() => setShowActionsheet(false)}
         >
           <ActionsheetBackdrop />
-          <ActionsheetContent className="pb-8">
+          <ActionsheetContent className="pb-8 rounded-t-[32px]">
             <ActionsheetDragIndicatorWrapper>
               <ActionsheetDragIndicator />
             </ActionsheetDragIndicatorWrapper>
             
-            <Text size="xl" className="font-bold mb-6 mt-2">
-              How is your mood today?
+            <Text size="xl" className="font-bold mb-8 mt-4 text-center text-gray-900">
+              How are you feeling?
             </Text>
 
-            <HStack className="justify-between w-full px-2 mb-8">
+            <HStack className="justify-between w-full px-4 mb-10">
               {MOOD_LABELS.map((label, index) => (
                 <Pressable
                   key={index}
                   onPress={() => setSelectedMoodIndex(index)}
-                  className="items-center"
+                  className="items-center gap-2"
                 >
-                  <Box
-                    className={`w-14 h-14 rounded-full items-center justify-center mb-2 ${
-                      selectedMoodIndex === index
-                        ? "bg-[#8882E7] border-1 border-primary-50"
-                        : "bg-gray-50"
-                    }`}
+                  <View
+                    style={[
+                      { width: 45, height: 45, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
+                      selectedMoodIndex === index 
+                        ? { backgroundColor: "#8882E7", transform: [{ scale: 1.1 }] } 
+                        : { backgroundColor: MOOD_COLORS[index] || "#F9FAFB" },
+                      selectedMoodIndex === index ? styles.shadowLg : {}
+                    ]}
                   >
                     <Text className="text-3xl">{Emojis[index]}</Text>
-                  </Box>
+                  </View>
                   <Text
-                    size="sm"
-                    className={`${
+                    size="xs"
+                    className={`font-medium ${
                       selectedMoodIndex === index
-                        ? "text-primary-600 font-bold"
+                        ? "text-[#8882E7] font-bold"
                         : "text-gray-500"
                     }`}
                   >
@@ -220,20 +218,55 @@ export default function MoodScreen() {
               ))}
             </HStack>
 
-            <Button
-              className="w-full rounded-full h-12 bg-[#8882E7]"
-              onPress={handleSaveMood}
-              isDisabled={selectedMoodIndex === null}
-            >
-              <ButtonText className="text-white font-bold text-lg">
-                {selectedMoodIndex !== null
-                  ? `I Feel ${MOOD_LABELS[selectedMoodIndex]}!`
-                  : "Select a Mood"}
-              </ButtonText>
-            </Button>
+            <View style={[styles.shadowMd, { width: '100%', borderRadius: 16 }]}>
+                <Button
+                className="w-full rounded-2xl h-14 bg-[#8882E7] active:opacity-90"
+                onPress={handleSaveMood}
+                isDisabled={selectedMoodIndex === null}
+                >
+                <ButtonText className="text-white font-bold text-lg">
+                    {selectedMoodIndex !== null
+                    ? "Save Mood"
+                    : "Select a Mood"}
+                </ButtonText>
+                </Button>
+            </View>
           </ActionsheetContent>
         </Actionsheet>
       </Box>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  shadowSm: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 1.00,
+    elevation: 1,
+  },
+  shadowMd: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  shadowLg: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.34,
+    shadowRadius: 6.27,
+    elevation: 10,
+  },
+});
