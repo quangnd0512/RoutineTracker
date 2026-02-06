@@ -8,6 +8,7 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Icon } from '@/components/ui/icon';
 import { HouseIcon, ListChecksIcon, SmilePlusIcon } from 'lucide-react-native';
+import { Header } from '@/components/Header';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -20,7 +21,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
+        header: ({ options }) => <Header title={options.title ?? ''} />,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
@@ -35,7 +37,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          headerShown: true,
           tabBarIcon: ({ focused }) => <Icon as={HouseIcon} className={colorStyle(focused)} />,
         }}
       />
@@ -43,7 +44,6 @@ export default function TabLayout() {
         name="task"
         options={{
           title: 'Routine Tasks',
-          headerShown: true,
           tabBarIcon: ({ focused }) => <Icon as={ListChecksIcon} className={colorStyle(focused)} />,
         }}
       />
@@ -51,7 +51,6 @@ export default function TabLayout() {
         name="mood"
         options={{
           title: 'Mood Trackers',
-          headerShown: true,
           tabBarIcon: ({ focused }) => <Icon as={SmilePlusIcon} className={colorStyle(focused)} />,
         }}
       />
