@@ -52,6 +52,7 @@ This document provides essential information for AI agents working on the `routi
 *   Use **Gluestack UI** components for accessible primitives (Box, VStack, Text, Button, etc.).
     *   Example: `import { Box } from "@/components/ui/box";`
     *   Check `gluestack-ui.config.json` and `global.css` for theme configurations.
+*   **Design Philosophy:** Follow a **minimalist design system** for all future modifications. Avoid clutter, excessive colors, or complex UI elements unless necessary. Prioritize clean, whitespace-heavy, and simple interfaces.
 
 ### State Management (Zustand)
 *   Stores are located in `store/`.
