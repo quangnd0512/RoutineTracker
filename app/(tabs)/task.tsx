@@ -370,11 +370,13 @@ export default function TaskScreen() {
         await RoutineTaskService.deleteFinishedRoutineTask(
           filteredOnDate || new Date(),
           taskId,
+          tasks.length,
         );
       } else {
         await RoutineTaskService.markFinishedRoutineTask(
           filteredOnDate || new Date(),
           taskId,
+          tasks.length,
         );
       }
 

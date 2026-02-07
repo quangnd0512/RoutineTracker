@@ -17,6 +17,9 @@ import { useMoodStore } from "@/store/moodStore";
 
 const MonthlyCalendar = () => {
   const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([]);
+  const [markFinishedDateRates, setMarkFinishedDateRates] = useState<
+    Map<string, number>
+  >(new Map());
 
   async function fetchFinishedDates(onDate: Date | null = null) {
     let markDate = new Date();
@@ -31,9 +34,9 @@ const MonthlyCalendar = () => {
       datesToFetch.push(date);
     }
 
-    const results = await RoutineTaskService.getFinishedRoutineTasksForDates(
-      datesToFetch,
-    );
+    const results =
+      await RoutineTaskService.getFinishedRoutineTasksForDates(datesToFetch);
+
     const finishedDates = results
       .map((res, index) => {
         if (res.length > 0) {
@@ -46,6 +49,26 @@ const MonthlyCalendar = () => {
       .filter((date) => date !== null);
 
     setMarkFinishedDates(finishedDates);
+
+    const rateResults =
+      await RoutineTaskService.getFinishedRoutineTaskRatesForDates(
+        datesToFetch,
+      );
+    const finishedDateRates = new Map<string, number>();
+    rateResults.forEach((rate, index) => {
+      if (rate !== null) {
+        const date = new Date(markDate);
+        date.setDate(index + 1);
+        const dateStr = date.toISOString().split("T")[0];
+        finishedDateRates.set(dateStr, rate);
+      }
+    });
+    setMarkFinishedDateRates(finishedDateRates);
+
+    log.info(`[HomeScreen] Fetched finished dates: ${finishedDates}`);
+    log.info(
+      `[HomeScreen] Fetched finished date rates: ${Array.from(finishedDateRates.entries())}`,
+    );
   }
 
   const memoizedFetchFinishedDates = useCallback(() => {
@@ -58,12 +81,16 @@ const MonthlyCalendar = () => {
 
   useFocusEffect(memoizedFetchFinishedDates);
 
-  const markedDates: { [date: string]: { marked: boolean } } = {
+  const markedDates: { [date: string]: { marked: boolean; rate: number } } = {
     // '2025-08-27': { marked: true },
     // '2025-08-28': { marked: true }
   };
   for (const date of markFinishedDates) {
-    markedDates[date] = { marked: true };
+    markedDates[date] = { marked: true, rate: 0 };
+    if (markFinishedDateRates.has(date)) {
+      const rate = markFinishedDateRates.get(date) ?? 0;
+      markedDates[date].rate = rate;
+    }
   }
 
   return (
@@ -71,6 +98,7 @@ const MonthlyCalendar = () => {
       title="Calendar Stats"
       data={{
         markFinishedDates,
+        markedDates,
         onMonthChange: (month) => fetchFinishedDates(month),
       }}
       type="progress_calendar"
@@ -95,9 +123,8 @@ const WeeklyChart = () => {
       datesToFetch.push(atDate);
     }
 
-    const results = await RoutineTaskService.getFinishedRoutineTasksForDates(
-      datesToFetch,
-    );
+    const results =
+      await RoutineTaskService.getFinishedRoutineTasksForDates(datesToFetch);
     const counts = results.map((res) => res.length);
 
     while (counts.length < 7) {
@@ -142,7 +169,7 @@ const MoodChart = () => {
       const dateStr = `${atDate.getFullYear()}-${String(
         atDate.getMonth() + 1,
       ).padStart(2, "0")}-${String(atDate.getDate()).padStart(2, "0")}`;
-      
+
       const log = moodLogs.find((l) => l.date === dateStr);
       const dayLabel = dayLabels[i];
 
@@ -188,6 +215,7 @@ interface StatsViewProps {
   data: {
     taskCounts?: number[];
     markFinishedDates?: string[];
+    markedDates?: { [date: string]: { marked: boolean; rate: number } };
     lineData?: any[];
     onMonthChange?: (month: Date) => void;
     spacing?: number;
@@ -223,7 +251,7 @@ const StatsView = ({ title, data, type = "bar" }: StatsViewProps) => {
       chartComponent = (
         <View className="pb-2">
           <CalendarView
-            markFinishedDates={data.markFinishedDates ?? []}
+            markedDates={data.markedDates}
             onMonthChange={data.onMonthChange}
           />
         </View>
@@ -345,7 +373,9 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       labelTextStyle: {
         color: index === pressedBarIndex ? "#8985e8" : "#9ca3af",
         fontSize: 12,
-        fontWeight: (index === pressedBarIndex ? "bold" : "normal") as "bold" | "normal",
+        fontWeight: (index === pressedBarIndex ? "bold" : "normal") as
+          | "bold"
+          | "normal",
       },
       topLabelComponent: () => {
         if (index === pressedBarIndex) {
@@ -361,9 +391,7 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
                   shadowRadius: 4,
                 }}
               >
-                <Text className="text-white text-xs font-bold">
-                  {count}
-                </Text>
+                <Text className="text-white text-xs font-bold">{count}</Text>
               </View>
               <View
                 className="w-3 h-3 bg-gray-800"
@@ -410,19 +438,11 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
 };
 
 interface CalendarViewProps {
-  markFinishedDates: string[];
+  markedDates?: { [date: string]: { marked: boolean; rate: number } };
   onMonthChange?: (month: Date) => void;
 }
 
-const CalendarView = ({
-  markFinishedDates,
-  onMonthChange,
-}: CalendarViewProps) => {
-  const markedDates: { [date: string]: { marked: boolean } } = {};
-  for (const date of markFinishedDates) {
-    markedDates[date] = { marked: true };
-  }
-
+const CalendarView = ({ markedDates, onMonthChange }: CalendarViewProps) => {
   return (
     <Calendar
       style={{ borderRadius: 12, overflow: "hidden" }}
@@ -461,18 +481,27 @@ const CalendarView = ({
       }
       markedDates={markedDates}
       dayComponent={({ date, marking, state }) => {
-        const isMarked = marking?.marked;
+        const markedData = markedDates ? markedDates[date.dateString] : null;
+        const isActuallyMarked = markedData ? markedData.marked : false;
+        const actualPercent = markedData ? markedData.rate * 100 : 0;
+
+        // Use actual data from markedDates prop to avoid inconsistency
+        const finalIsMarked = isActuallyMarked;
+        const finalPercent = actualPercent;
+
         return (
           <View className="items-center justify-center h-8 w-8">
             <ProgressCircle
-              progressPercent={isMarked ? 100 : 0}
+              progressPercent={
+                finalIsMarked ? (finalPercent === 0 ? 100 : finalPercent) : 0
+              }
               displayText={date?.day?.toString() ?? ""}
               textColor={
                 state === "disabled"
                   ? "#d1d5db"
-                  : isMarked
-                  ? "#8985e8"
-                  : "#4b5563"
+                  : isActuallyMarked
+                    ? "#8985e8"
+                    : "#4b5563"
               }
             />
           </View>
