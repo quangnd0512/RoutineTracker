@@ -1,73 +1,92 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useLayoutEffect } from 'react';
-import { ScrollView, View } from 'react-native';
-import { VStack } from '@/components/ui/vstack';
-import { Box } from '@/components/ui/box';
-import { Input, InputField } from '@/components/ui/input';
-import { HStack } from '@/components/ui/hstack';
-import { Pressable } from '@/components/ui/pressable';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
-import { Heading } from '@/components/ui/heading';
-import { Icon } from '@/components/ui/icon';
-import { CheckIcon, XIcon } from 'lucide-react-native';
-import log from '@/services/logger';
-import { useForm, Controller } from "react-hook-form"
-import { Grid, GridItem } from '@/components/ui/grid';
-import { Checkbox, CheckboxIcon, CheckboxIndicator } from '@/components/ui/checkbox';
-import { useCandyContext } from '@/store/context';
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import React, { useLayoutEffect } from "react";
+import { ScrollView, View, TouchableOpacity } from "react-native";
+import { VStack } from "@/components/ui/vstack";
+import { Box } from "@/components/ui/box";
+import { Input, InputField } from "@/components/ui/input";
+import { HStack } from "@/components/ui/hstack";
+import { Pressable } from "@/components/ui/pressable";
+import { Button, ButtonText } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { Heading } from "@/components/ui/heading";
+import { Icon } from "@/components/ui/icon";
+import { CheckIcon, ArrowLeftIcon } from "lucide-react-native";
+import { useForm, Controller } from "react-hook-form";
+import { Grid, GridItem } from "@/components/ui/grid";
+import { useCandyContext } from "@/store/context";
 
 const COLORS = [
-  '#FFFFCD',
-  '#FFCD9A',
-  '#AA959A',
-  '#C7A5A3',
-  '#FF9799',
+  "#FFFFCD",
+  "#FFCD9A",
+  "#AA959A",
+  "#C7A5A3",
+  "#FF9799",
 
-  '#FFCBCB',
-  '#FF9BCD',
-  '#FFCFFF',
-  '#CC9AFD',
-  '#CCCEFD',
+  "#FFCBCB",
+  "#FF9BCD",
+  "#FFCFFF",
+  "#CC9AFD",
+  "#CCCEFD",
 
-  '#9CCDFE',
-  '#99C7C5',
-  '#CDFFFE',
-  '#CDFFCC',
-  '#5be2f7',
+  "#9CCDFE",
+  "#99C7C5",
+  "#CDFFFE",
+  "#CDFFCC",
+  "#5be2f7",
 ];
 
-const RANDOM_EMOJIS = ["☂️", "🎓", "💼", "🧳", "👑", "🏄🏻‍♂️", "🐓", "🏯", "💳", "💞", "🫎",
-  "🩻", "🗓", "💎", "🗑", "❤️‍🔥", "🫅", "⚒", "💻", "⌚️"
+const RANDOM_EMOJIS = [
+  "☂️",
+  "🎓",
+  "💼",
+  "🧳",
+  "👑",
+  "🏄🏻‍♂️",
+  "🐓",
+  "🏯",
+  "💳",
+  "💞",
+  "🫎",
+  "🩻",
+  "🗓",
+  "💎",
+  "🗑",
+  "❤️‍🔥",
+  "🫅",
+  "⚒",
+  "💻",
+  "⌚️",
 ];
 
-const ColorInput = React.memo(({ control }: { control: any, errors: any }) => {
-
+const ColorInput = React.memo(({ control }: { control: any; errors: any }) => {
   return (
     <Controller
       control={control}
       name="color"
       render={({ field: { onChange, value } }) => (
-        <Box>
-          <Heading size='lg'>Color</Heading>
-          <Grid _extra={{
-            className: 'grid-cols-5',
-          }} gap={2} className='gap-4 my-4'>
+        <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+          <Heading size="md" className="mb-4 text-gray-800">
+            Color
+          </Heading>
+          <Grid
+            _extra={{
+              className: "grid-cols-5",
+            }}
+            gap={4}
+            className="gap-4"
+          >
             {COLORS.map((c) => (
-              <GridItem key={c}
-                _extra={{ className: '' }}
-              >
+              <GridItem key={c} _extra={{ className: "" }}>
                 <Pressable
                   key={c}
-                  onPress={() => { onChange(c); }}
+                  onPress={() => {
+                    onChange(c);
+                  }}
                   style={{ backgroundColor: c }}
-                  className='w-14 h-14 rounded-full justify-center items-center'
+                  className="w-12 h-12 rounded-full justify-center items-center shadow-sm border border-gray-100"
                 >
                   {value === c && (
-                    <Icon
-                      as={CheckIcon}
-                      className='w-8 h-8'
-                    />
+                    <Icon as={CheckIcon} className="w-6 h-6 text-gray-700" />
                   )}
                 </Pressable>
               </GridItem>
@@ -78,36 +97,47 @@ const ColorInput = React.memo(({ control }: { control: any, errors: any }) => {
     />
   );
 });
-ColorInput.displayName = 'ColorInput';
+ColorInput.displayName = "ColorInput";
 
-const DoItAtInput = React.memo(({ control }: { control: any, errors: any }) => {
-  const options = ['morning', 'afternoon', 'evening'];
+const DoItAtInput = React.memo(({ control }: { control: any; errors: any }) => {
+  const options = ["morning", "afternoon", "evening"];
 
-  const DoItAtView = ({ value, onChange }: { value: string | null, onChange: (value: string | null) => void }) => {
+  const DoItAtView = ({
+    value,
+    onChange,
+  }: {
+    value: string | null;
+    onChange: (value: string | null) => void;
+  }) => {
     return (
-      <View>
-        <Box>
-          <Heading size='lg'>Do it at:</Heading>
-          <HStack className='gap-4 my-4'>
-            {
-              options.map((option) => (
-                <Button
-                  key={option}
-                  onPress={() => {
-                    onChange(option);
-                  }}
-                  className={`${value === option ? 'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
-                  variant={value === option ? 'solid' : 'outline'}
-                  size='sm'>
-                  <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
-                </Button>
-              ))
-            }
-          </HStack>
-        </Box>
-      </View>
+      <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+        <Heading size="md" className="mb-4 text-gray-800">
+          Do it at
+        </Heading>
+        <HStack className="gap-3">
+          {options.map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => onChange(option)}
+              className={`flex-1 py-3 px-2 rounded-xl items-center justify-center border ${
+                value === option
+                  ? "bg-[#8882e7] border-[#8882e7]"
+                  : "bg-gray-50 border-gray-200"
+              }`}
+            >
+              <Text
+                className={`text-sm font-semibold capitalize ${
+                  value === option ? "text-white" : "text-gray-600"
+                }`}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          ))}
+        </HStack>
+      </Box>
     );
-  }
+  };
 
   return (
     <Controller
@@ -119,85 +149,120 @@ const DoItAtInput = React.memo(({ control }: { control: any, errors: any }) => {
     />
   );
 });
-DoItAtInput.displayName = 'DoItAtInput';
+DoItAtInput.displayName = "DoItAtInput";
 
-const RepeatInput = React.memo(({ control }: { control: any, errors: any }) => {
-  const options = ['daily', 'weekly', 'monthly'];
+const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
+  const options = ["daily", "weekly", "monthly"];
 
-  const RepeatOptionView = ({ repeatType, onChange }: { repeatType: string, onChange: (value: string) => void }) => {
+  const RepeatOptionView = ({
+    repeatType,
+    onChange,
+  }: {
+    repeatType: string;
+    onChange: (value: string) => void;
+  }) => {
     return (
-      <Box>
-        <Heading size='lg'>Repeat</Heading>
-        <HStack className='gap-4 my-4'>
-          {
-            options.map((option) => (
-              <Button
-                key={option}
-                onPress={() => {
-                  onChange(option);
-                }}
-                disabled={true}
-                className={`${repeatType === option ?
-                  'data-[active=true]:bg-[#8587ea] bg-[#8587ea] border-[#8587ea]' : 'bg-transparent'} rounded-full border-gray-300 flex-1`}
-                variant={repeatType === option ? 'solid' : 'outline'}
+      <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+        <Heading size="md" className="mb-4 text-gray-800">
+          Repeat
+        </Heading>
+        <HStack className="gap-3">
+          {options.map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => onChange(option)}
+              disabled={option !== "daily"} // Keeping original logic
+              className={`flex-1 py-3 px-2 rounded-xl items-center justify-center border ${
+                repeatType === option
+                  ? "bg-[#8882e7] border-[#8882e7]"
+                  : "bg-gray-50 border-gray-200"
+              } ${option !== "daily" ? "opacity-50" : ""}`}
+            >
+              <Text
+                className={`text-sm font-semibold capitalize ${
+                  repeatType === option ? "text-white" : "text-gray-600"
+                }`}
               >
-                <ButtonText>{option.at(0) ? option[0].toUpperCase() + option.slice(1) : option}</ButtonText>
-              </Button>
-            ))
-          }
+                {option}
+              </Text>
+            </Pressable>
+          ))}
         </HStack>
       </Box>
     );
-  }
+  };
 
-  const RepeatValuesView = ({ repeatValues, onChange }: { repeatValues: string[], onChange: (values: string[]) => void }) => {
+  const RepeatValuesView = ({
+    repeatValues,
+    onChange,
+  }: {
+    repeatValues: string[];
+    onChange: (values: string[]) => void;
+  }) => {
     const allDay = repeatValues.length === 7;
     return (
-      <Box>
-        <View className='flex-row items-center justify-between my-2'>
-          <Heading size='lg'>On these days:</Heading>
-          <View className='flex-row items-center'>
-            <Text className='text-gray-400 mr-2'>All day</Text>
-            <Checkbox value='all-day' isChecked={allDay} onChange={(val) => {
-              if (val) {
-                onChange(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
-              } else {
+      <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+        <View className="flex-row items-center justify-between mb-4">
+          <Heading size="md" className="text-gray-800">
+            On these days
+          </Heading>
+          <Pressable
+            className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200"
+            onPress={() => {
+              if (allDay) {
                 onChange([]);
+              } else {
+                onChange(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
               }
-            }}>
-              <CheckboxIndicator className={`data-[active=true]:bg-[#8587ea] data-[checked=true]:bg-[#8587ea] data-[unchecked=true]:bg-transparent ${allDay ? 'border-0' : 'border-gray-300 border-[1px]'} rounded-sm w-5 h-5 justify-center items-center`}>
-                <CheckboxIcon as={CheckIcon} />
-              </CheckboxIndicator>
-            </Checkbox>
-          </View>
+            }}
+          >
+            <Text className="text-xs font-semibold text-gray-600 mr-2">
+              All day
+            </Text>
+            <View
+              className={`w-4 h-4 rounded-full border items-center justify-center ${
+                allDay ? "bg-[#8882e7] border-[#8882e7]" : "border-gray-400"
+              }`}
+            >
+              {allDay && <Icon as={CheckIcon} className="text-white w-3 h-3" />}
+            </View>
+          </Pressable>
         </View>
 
-        <View className='flex-row items-center gap-2 my-4'>
-          {
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <Pressable
-                key={day}
-                onPress={() => {
-
-                  let newValues = [...repeatValues];
-                  if (newValues.includes(day)) {
-                    newValues = newValues.filter((d) => d !== day);
-                  } else {
-                    newValues.push(day);
-                  }
-                  
-                  onChange(newValues);
-                }}
-                className={`flex-1 border-[1px] items-center justify-center rounded-lg w-12 h-12 ${allDay || repeatValues.includes(day) ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-gray-300'}`}
+        <View className="flex-row items-center justify-between gap-1">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <Pressable
+              key={day}
+              onPress={() => {
+                let newValues = [...repeatValues];
+                if (newValues.includes(day)) {
+                  newValues = newValues.filter((d) => d !== day);
+                } else {
+                  newValues.push(day);
+                }
+                onChange(newValues);
+              }}
+              className={`items-center justify-center rounded-xl w-10 h-12 border ${
+                allDay || repeatValues.includes(day)
+                  ? "bg-[#8882e7] border-[#8882e7]"
+                  : "bg-gray-50 border-gray-200"
+              }`}
+            >
+              <Text
+                className={`font-semibold text-sm ${
+                  allDay || repeatValues.includes(day)
+                    ? "text-white"
+                    : "text-gray-500"
+                }`}
               >
-                <Text className={`${allDay || repeatValues.includes(day) ? 'text-white' : 'text-gray-700'}`}>{day[0]}</Text>
-              </Pressable>
-            ))
-          }
+                {day[0]}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </Box>
     );
-  }
+  };
 
   return (
     <>
@@ -211,8 +276,8 @@ const RepeatInput = React.memo(({ control }: { control: any, errors: any }) => {
       <Controller
         control={control}
         name="repeat"
-        render={({ field: { value: repeatValue } }) => (
-           repeatValue === 'daily' ? (
+        render={({ field: { value: repeatValue } }) =>
+          repeatValue === "daily" ? (
             <Controller
               control={control}
               name="repeatValues"
@@ -220,63 +285,69 @@ const RepeatInput = React.memo(({ control }: { control: any, errors: any }) => {
                 <RepeatValuesView repeatValues={value} onChange={onChange} />
               )}
             />
-          ) : <></>
-        )}
+          ) : (
+            <></>
+          )
+        }
       />
     </>
   );
 });
-RepeatInput.displayName = 'RepeatInput';
+RepeatInput.displayName = "RepeatInput";
 
-const IconInput = React.memo(({ control, errors }: { control: any, errors: any }) => {
-
-  return (
-    <Controller
-      control={control}
-      rules={{ required: false }}
-      name="icon"
-      render={({ field: { onChange, value } }) => (
-        <View>
-          <Box>
-            <Heading size='lg'>Icon</Heading>
+const IconInput = React.memo(
+  ({ control, errors }: { control: any; errors: any }) => {
+    return (
+      <Controller
+        control={control}
+        rules={{ required: false }}
+        name="icon"
+        render={({ field: { onChange, value } }) => (
+          <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+            <Heading size="md" className="mb-2 text-gray-800">
+              Icon
+            </Heading>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <HStack className='gap-2 my-4'>
+              <HStack className="gap-3 my-2">
                 {RANDOM_EMOJIS.map((e, index) => (
                   <Pressable
                     key={e + index}
                     onPress={() => {
                       onChange(e);
                     }}
-                    className={`border-[1px] items-center justify-center rounded-[4px] w-14 h-14 ${value === e ? 'bg-[#8587ea] border-[#8587ea]' : 'bg-transparent border-[#f7f7f7]'}`}
+                    className={`items-center justify-center rounded-xl w-12 h-12 border ${
+                      value === e
+                        ? "bg-[#8882e7]/10 border-[#8882e7]"
+                        : "bg-gray-50 border-gray-100"
+                    }`}
                   >
-                    <Box>
-                      <Text className='text-[30px]'>{e}</Text>
-                    </Box>
+                    <Text className="text-2xl">{e}</Text>
                   </Pressable>
                 ))}
               </HStack>
             </ScrollView>
+            {errors.icon && (
+              <Text className="text-red-500 mt-1 text-xs">
+                {errors.icon.message}
+              </Text>
+            )}
           </Box>
-          {errors.icon && <Text className='text-red-500 mt-1'>{errors.icon.message}</Text>}
-        </View>
-      )}
-    />
-  );
-});
-IconInput.displayName = 'IconInput';
-
-
+        )}
+      />
+    );
+  },
+);
+IconInput.displayName = "IconInput";
 
 const Page = () => {
   const navigation = useNavigation();
-  const addRoutineTask = useCandyContext(state => state.addRoutineTask);
-  const updateRoutineTask = useCandyContext(state => state.updateRoutineTask);
+  const addRoutineTask = useCandyContext((state) => state.addRoutineTask);
+  const updateRoutineTask = useCandyContext((state) => state.updateRoutineTask);
 
   const { id } = useLocalSearchParams();
-  log.info('Form ID:', id);
   const isEdit = !!id;
 
-  const getRoutineTask = useCandyContext(state => state.getRoutineTask);
+  const getRoutineTask = useCandyContext((state) => state.getRoutineTask);
   const routineTask = isEdit ? getRoutineTask(id as string) : null;
 
   const {
@@ -285,85 +356,92 @@ const Page = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      name: routineTask ? routineTask.label : '',
-      color: routineTask ? routineTask.color : '',
-      icon: routineTask ? routineTask.icon : '',
-      doItAt: routineTask ? routineTask.doItAt : '',
-      repeat: routineTask ? (routineTask.repeat ? routineTask.repeat : 'daily') : 'daily',
-      repeatValues: routineTask ? (routineTask.repeatValues ? routineTask.repeatValues : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    }
+      name: routineTask ? routineTask.label : "",
+      color: routineTask ? routineTask.color : "",
+      icon: routineTask ? routineTask.icon : "",
+      doItAt: routineTask ? routineTask.doItAt : "",
+      repeat: routineTask
+        ? routineTask.repeat
+          ? routineTask.repeat
+          : "daily"
+        : "daily",
+      repeatValues: routineTask
+        ? routineTask.repeatValues
+          ? routineTask.repeatValues
+          : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    },
   });
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: false, // 👈 hides the header
+      headerShown: false,
     });
   }, [navigation]);
 
   return (
-    <View className='flex-1 bg-white pt-12'>
-      <View className='headerPage'>
-        <View className='items-center justify-center py-4'>
-          <Heading size='xl'>{isEdit ? 'Edit Task' : 'Create New Task'}</Heading>
-          <View className='left-5 absolute'>
-            <Pressable onPress={() => navigation.goBack()}>
-              <Icon as={XIcon} className='w-8 h-8' />
-            </Pressable>
-          </View>
-        </View>
+    <View className="flex-1 bg-gray-50/50">
+      {/* Header */}
+      <View className="px-4 pt-14 pb-4 bg-white border-b border-gray-100 flex-row items-center justify-between shadow-sm z-10">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="w-10 h-10 items-center justify-center rounded-full bg-gray-50 active:bg-gray-100"
+        >
+          <Icon as={ArrowLeftIcon} className="text-gray-800 w-6 h-6" />
+        </TouchableOpacity>
+        <Heading size="lg" className="text-gray-800 font-bold">
+          {isEdit ? "Edit Task" : "New Task"}
+        </Heading>
+        <View className="w-10" /> 
       </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <VStack className='gap-4 m-6'>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <VStack className="gap-2 p-4">
           <Controller
             control={control}
             name="name"
             rules={{ required: "Task name is required" }}
             render={({ field: { onChange, value } }) => (
-              <View>
-                <Box>
-                  <View className='pb-3'>
-                    <Heading size='lg'>Task Name</Heading>
-                  </View>
-                  <Input
-                    className='bg-gray-50 border-0 h-14 rounded-lg'
-                  >
-                    <InputField
-                      underlineColorAndroid={'transparent'}
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="Task Name"
-                      size='sm'
-                      className='placeholder:text-gray-300 font-bold'
-                    />
-                  </Input>
-                </Box>
-                {errors.name && <Text className='text-red-500 mt-1'>{errors.name.message}</Text>}
-              </View>
+              <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
+                <Heading size="md" className="mb-3 text-gray-800">
+                  Task Name
+                </Heading>
+                <Input className="bg-gray-50 border border-gray-200 h-12 rounded-xl">
+                  <InputField
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="e.g. Read a book"
+                    className="font-medium text-gray-800 text-sm"
+                    placeholderTextColor="#9ca3af"
+                  />
+                </Input>
+                {errors.name && (
+                  <Text className="text-red-500 mt-2 text-xs">
+                    {errors.name.message}
+                  </Text>
+                )}
+              </Box>
             )}
           />
           <IconInput control={control} errors={errors} />
           <ColorInput control={control} errors={errors} />
           <RepeatInput control={control} errors={errors} />
           <DoItAtInput control={control} errors={errors} />
-          {/* <HStack className='items-center justify-between'>
-            <Text>End Habit on</Text>
-            <Switch value={endDate} onValueChange={setEndDate} />
-          </HStack> */}
-          <Button className='h-auto py-4 rounded-full data-[active=true]:bg-[#8A85E6] bg-[#8A85E6] mt-4'
-            variant='solid'
+
+          <Button
+            className="h-14 rounded-full bg-[#8882e7] shadow-lg shadow-indigo-200 mt-4 active:bg-[#7069d6]"
             onPress={() => {
-              log.info('Submitting form...');
-
               handleSubmit((data) => {
-                log.debug('Form Data:', data);
-
                 if (isEdit) {
                   updateRoutineTask(id as string, {
                     label: data.name,
                     color: data.color,
                     icon: data.icon,
-                    doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
-                    repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
+                    doItAt: data.doItAt as "morning" | "afternoon" | "evening",
+                    repeat: data.repeat as "daily" | "weekly" | "monthly",
                     repeatValues: data.repeatValues,
                     updatedAt: new Date(),
                   });
@@ -374,19 +452,21 @@ const Page = () => {
                     color: data.color,
                     isFavorite: false,
                     icon: data.icon,
-                    doItAt: data.doItAt as 'morning' | 'afternoon' | 'evening',
-                    repeat: data.repeat as 'daily' | 'weekly' | 'monthly',
+                    doItAt: data.doItAt as "morning" | "afternoon" | "evening",
+                    repeat: data.repeat as "daily" | "weekly" | "monthly",
                     repeatValues: data.repeatValues,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     deletedAt: null,
                   });
-
-                } 
+                }
                 navigation.goBack();
               })();
-            }}>
-            <ButtonText>Save</ButtonText>
+            }}
+          >
+            <ButtonText className="font-bold text-lg">
+              {isEdit ? "Update Task" : "Create Task"}
+            </ButtonText>
           </Button>
         </VStack>
       </ScrollView>
