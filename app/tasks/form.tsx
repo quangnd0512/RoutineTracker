@@ -14,6 +14,7 @@ import { CheckIcon, ArrowLeftIcon } from "lucide-react-native";
 import { useForm, Controller } from "react-hook-form";
 import { Grid, GridItem } from "@/components/ui/grid";
 import { useCandyContext } from "@/store/context";
+import i18n from "@/i18n";
 
 const COLORS = [
   "#FFFFCD",
@@ -66,7 +67,7 @@ const ColorInput = React.memo(({ control }: { control: any; errors: any }) => {
       render={({ field: { onChange, value } }) => (
         <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
           <Heading size="md" className="mb-4 text-gray-800">
-            Color
+            {i18n.t('color')}
           </Heading>
           <Grid
             _extra={{
@@ -112,7 +113,7 @@ const DoItAtInput = React.memo(({ control }: { control: any; errors: any }) => {
     return (
       <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
         <Heading size="md" className="mb-4 text-gray-800">
-          Do it at
+          {i18n.t('do_it_at')}
         </Heading>
         <HStack className="gap-3">
           {options.map((option) => (
@@ -130,7 +131,7 @@ const DoItAtInput = React.memo(({ control }: { control: any; errors: any }) => {
                   value === option ? "text-white" : "text-gray-600"
                 }`}
               >
-                {option}
+                {i18n.t(option)}
               </Text>
             </Pressable>
           ))}
@@ -164,7 +165,7 @@ const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
     return (
       <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
         <Heading size="md" className="mb-4 text-gray-800">
-          Repeat
+          {i18n.t('repeat')}
         </Heading>
         <HStack className="gap-3">
           {options.map((option) => (
@@ -183,7 +184,7 @@ const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
                   repeatType === option ? "text-white" : "text-gray-600"
                 }`}
               >
-                {option}
+                {i18n.t(option)}
               </Text>
             </Pressable>
           ))}
@@ -204,7 +205,7 @@ const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
       <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
         <View className="flex-row items-center justify-between mb-4">
           <Heading size="md" className="text-gray-800">
-            On these days
+            {i18n.t('on_these_days')}
           </Heading>
           <Pressable
             className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200"
@@ -217,7 +218,7 @@ const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
             }}
           >
             <Text className="text-xs font-semibold text-gray-600 mr-2">
-              All day
+              {i18n.t('all_day')}
             </Text>
             <View
               className={`w-4 h-4 rounded-full border items-center justify-center ${
@@ -255,7 +256,7 @@ const RepeatInput = React.memo(({ control }: { control: any; errors: any }) => {
                     : "text-gray-500"
                 }`}
               >
-                {day[0]}
+                {i18n.t(day.toLowerCase())}
               </Text>
             </Pressable>
           ))}
@@ -305,7 +306,7 @@ const IconInput = React.memo(
         render={({ field: { onChange, value } }) => (
           <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
             <Heading size="md" className="mb-2 text-gray-800">
-              Icon
+              {i18n.t('icon')}
             </Heading>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <HStack className="gap-3 my-2">
@@ -390,7 +391,7 @@ const Page = () => {
           <Icon as={ArrowLeftIcon} className="text-gray-800 w-6 h-6" />
         </TouchableOpacity>
         <Heading size="lg" className="text-gray-800 font-bold">
-          {isEdit ? "Edit Task" : "New Task"}
+          {isEdit ? i18n.t('edit_task') : i18n.t('new_task')}
         </Heading>
         <View className="w-10" /> 
       </View>
@@ -403,17 +404,17 @@ const Page = () => {
           <Controller
             control={control}
             name="name"
-            rules={{ required: "Task name is required" }}
+            rules={{ required: i18n.t('task_name_required') }}
             render={({ field: { onChange, value } }) => (
               <Box className="bg-white rounded-2xl p-4 border border-gray-100 mb-4 shadow-sm">
                 <Heading size="md" className="mb-3 text-gray-800">
-                  Task Name
+                  {i18n.t('task_name')}
                 </Heading>
                 <Input className="bg-gray-50 border border-gray-200 h-12 rounded-xl">
                   <InputField
                     value={value}
                     onChangeText={onChange}
-                    placeholder="e.g. Read a book"
+                    placeholder={i18n.t('task_name_placeholder')}
                     className="font-medium text-gray-800 text-sm"
                     placeholderTextColor="#9ca3af"
                   />
@@ -465,7 +466,7 @@ const Page = () => {
             }}
           >
             <ButtonText className="font-bold text-lg">
-              {isEdit ? "Update Task" : "Create Task"}
+              {isEdit ? i18n.t('update_task') : i18n.t('create_task')}
             </ButtonText>
           </Button>
         </VStack>

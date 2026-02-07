@@ -15,6 +15,8 @@ import { Calendar } from "react-native-calendars";
 import { BarChart, LineChart } from "react-native-gifted-charts";
 import { useMoodStore } from "@/store/moodStore";
 
+import i18n from "@/i18n";
+
 const MonthlyCalendar = () => {
   const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([]);
   const [markFinishedDateRates, setMarkFinishedDateRates] = useState<
@@ -95,7 +97,7 @@ const MonthlyCalendar = () => {
 
   return (
     <StatsView
-      title="Calendar Stats"
+      title={i18n.t('calendar_stats')}
       data={{
         markFinishedDates,
         markedDates,
@@ -145,7 +147,7 @@ const WeeklyChart = () => {
 
   useFocusEffect(memoizedFetchTasks);
 
-  return <StatsView title="Tasks Completed" data={{ taskCounts }} type="bar" />;
+  return <StatsView title={i18n.t('tasks_completed')} data={{ taskCounts }} type="bar" />;
 };
 
 const MoodChart = () => {
@@ -157,7 +159,9 @@ const MoodChart = () => {
     const currentDay = _now.getDay() === 0 ? 7 : _now.getDay(); // 1-7 (Mon-Sun)
 
     const data = [];
-    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dayLabels = [
+      i18n.t('mon'), i18n.t('tue'), i18n.t('wed'), i18n.t('thu'), i18n.t('fri'), i18n.t('sat'), i18n.t('sun')
+    ];
 
     // Calculate start of week (Monday)
     const startOfWeek = new Date(_now);
@@ -203,7 +207,7 @@ const MoodChart = () => {
 
   return (
     <StatsView
-      title="Mood Chart"
+      title={i18n.t('mood_chart')}
       data={{ lineData, spacing, width: chartWidth }}
       type="line"
     />
@@ -262,9 +266,9 @@ const StatsView = ({ title, data, type = "bar" }: StatsViewProps) => {
       break;
   }
 
-  let filterText = "This Week";
+  let filterText = i18n.t('this_week');
   if (type === "progress_calendar") {
-    filterText = "This Month";
+    filterText = i18n.t('this_month');
   }
 
   return (
@@ -358,7 +362,9 @@ const MoodLineChart = ({
 
 const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
   const [pressedBarIndex, setPressedBarIndex] = useState(-1);
-  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const labels = [
+    i18n.t('mon'), i18n.t('tue'), i18n.t('wed'), i18n.t('thu'), i18n.t('fri'), i18n.t('sat'), i18n.t('sun')
+  ];
   const { width } = useWindowDimensions();
   const initialSpacing = 10;
   const barWidth =

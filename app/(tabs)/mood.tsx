@@ -21,12 +21,17 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from "@/components/ui/actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
-
-const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MOOD_LABELS = ["Great", "Good", "Okay", "Not Good", "Bad"];
-const MOOD_COLORS = ["#D1FAE5", "#E0F2FE", "#F3F4F6", "#FEF3C7", "#FEE2E2"]; // Soft backgrounds for moods
+import i18n from "@/i18n";
 
 export default function MoodScreen() {
+  const DAYS_OF_WEEK = [
+    i18n.t('mon'), i18n.t('tue'), i18n.t('wed'), i18n.t('thu'), i18n.t('fri'), i18n.t('sat'), i18n.t('sun')
+  ];
+  const MOOD_LABELS = [
+    i18n.t('great'), i18n.t('good'), i18n.t('okay'), i18n.t('not_good'), i18n.t('bad')
+  ];
+  const MOOD_COLORS = ["#D1FAE5", "#E0F2FE", "#F3F4F6", "#FEF3C7", "#FEE2E2"]; // Soft backgrounds for moods
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showActionsheet, setShowActionsheet] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
@@ -183,7 +188,7 @@ export default function MoodScreen() {
             </ActionsheetDragIndicatorWrapper>
             
             <Text size="xl" className="font-bold mb-8 mt-4 text-center text-gray-900">
-              How are you feeling?
+              {i18n.t('how_are_you_feeling')}
             </Text>
 
             <HStack className="justify-between w-full px-4 mb-10">
@@ -226,8 +231,8 @@ export default function MoodScreen() {
                 >
                 <ButtonText className="text-white font-bold text-lg">
                     {selectedMoodIndex !== null
-                    ? "Save Mood"
-                    : "Select a Mood"}
+                    ? i18n.t('save_mood')
+                    : i18n.t('select_mood')}
                 </ButtonText>
                 </Button>
             </View>

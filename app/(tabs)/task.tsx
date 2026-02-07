@@ -25,6 +25,7 @@ import {
 import log from "@/services/logger";
 import { Icon } from "@/components/ui/icon";
 import { Fab } from "@/components/ui/fab";
+import i18n from "@/i18n";
 
 type Task = {
   id: string;
@@ -85,7 +86,7 @@ const RoutineTask = React.memo(
               }}
             >
               <View className="flex-row items-center gap-2 p-4 pr-8">
-                <Text className="text-white font-bold">Skip</Text>
+                <Text className="text-white font-bold">{i18n.t('skip')}</Text>
                 <Icon as={ArrowRightIcon} className="text-white" size="xl" />
               </View>
             </Animated.View>
@@ -168,7 +169,7 @@ const RoutineTask = React.memo(
                 </Text>
                 {task.isDone && (
                   <Text className="text-xs text-gray-400 mt-0.5">
-                    Completed
+                    {i18n.t('completed')}
                   </Text>
                 )}
               </View>
@@ -225,19 +226,36 @@ const RoutineTask = React.memo(
 );
 RoutineTask.displayName = "RoutineTask";
 
-const DATE_NAME_DEFAULT_OPTIONS = ["Today", "Yesterday", "Other"];
-
 interface FilterTaskProps {
   selectedDate: Date | null;
   onSelectedDateChange: (date: Date | null) => void;
 }
 const FilterTask: React.FC<FilterTaskProps> = React.memo(
   ({ selectedDate, onSelectedDateChange }) => {
+    const DATE_NAME_DEFAULT_OPTIONS = [i18n.t('today'), i18n.t('yesterday'), i18n.t('other')];
+    
     const [dateNames, setDateNames] = useState<string[]>(
       DATE_NAME_DEFAULT_OPTIONS,
     );
-    const [selectedDateName, setSelectedDateName] = useState<string>("Today");
+    const [selectedDateName, setSelectedDateName] = useState<string>(i18n.t('today'));
     const [showDatePicker, setShowDatePicker] = useState(false);
+
+    // Update dateNames when language changes
+    useEffect(() => {
+        const newOptions = [i18n.t('today'), i18n.t('yesterday'), i18n.t('other')];
+        setDateNames(prev => {
+            // Keep any custom dates that were added (dates that are not Today/Yesterday/Other)
+            const customDates = prev.filter(d => !DATE_NAME_DEFAULT_OPTIONS.includes(d) && !newOptions.includes(d));
+            return [...newOptions, ...customDates];
+        });
+        // Update selection if it was one of the default options
+        if (DATE_NAME_DEFAULT_OPTIONS.includes(selectedDateName)) {
+             if (selectedDateName === i18n.t('today') || selectedDateName === "Today" || selectedDateName === "Hôm nay") setSelectedDateName(i18n.t('today'));
+             else if (selectedDateName === i18n.t('yesterday') || selectedDateName === "Yesterday" || selectedDateName === "Hôm qua") setSelectedDateName(i18n.t('yesterday'));
+             else if (selectedDateName === i18n.t('other') || selectedDateName === "Other" || selectedDateName === "Khác") setSelectedDateName(i18n.t('other'));
+        }
+    }, [i18n.locale]);
+
 
     const onDatePickerChange = useCallback(
       (event: any, selectedDate?: Date) => {
@@ -260,21 +278,17 @@ const FilterTask: React.FC<FilterTaskProps> = React.memo(
       (name: string) => {
         const onDate = new Date();
 
-        switch (name) {
-          case "Today":
+        if (name === i18n.t('today')) {
             setSelectedDateName(name);
-            setDateNames(DATE_NAME_DEFAULT_OPTIONS);
+            setDateNames([i18n.t('today'), i18n.t('yesterday'), i18n.t('other')]);
             onSelectedDateChange(onDate);
-            break;
-          case "Yesterday":
+        } else if (name === i18n.t('yesterday')) {
             onDate.setDate(onDate.getDate() - 1);
             onSelectedDateChange(onDate);
             setSelectedDateName(name);
-            setDateNames(DATE_NAME_DEFAULT_OPTIONS);
-            break;
-          default:
-            setShowDatePicker(true);
-            break;
+            setDateNames([i18n.t('today'), i18n.t('yesterday'), i18n.t('other')]);
+        } else {
+             setShowDatePicker(true);
         }
       },
       [onSelectedDateChange],
@@ -448,17 +462,17 @@ export default function TaskScreen() {
       <View className="flex-1 bg-gray-50/50 pt-4">
         <SectionList
           sections={[
-            { title: "Todo", data: todoTasks },
-            { title: "Completed", data: doneTasks },
+            { title: i18n.t('todo'), data: todoTasks },
+            { title: i18n.t('completed'), data: doneTasks },
           ]}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           renderSectionHeader={({ section: { title, data } }) => {
-            if (title === "Completed" && data.length > 0) {
+            if (title === i18n.t('completed') && data.length > 0) {
               return (
                 <View className="flex-row items-center px-6 py-4 mt-2 mb-2">
                   <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    Completed ({data.length})
+                    {i18n.t('completed')} ({data.length})
                   </Text>
                   <View className="h-[1px] flex-1 bg-gray-200 ml-4" />
                 </View>
