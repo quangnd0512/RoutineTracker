@@ -218,7 +218,7 @@ export default function MoodScreen() {
               )).reverse()}
             </HStack>
 
-            <View style={[styles.shadowMd, { width: '100%', borderRadius: 16 }]}>
+            <View style={[{ width: '100%', borderRadius: 16 }]}>
                 <Button
                 className="w-full rounded-2xl h-14 bg-[#8882E7] active:opacity-90"
                 onPress={handleSaveMood}
