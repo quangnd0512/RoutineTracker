@@ -65,6 +65,8 @@ export const scheduleNotificationsForRoutineTasks = async () => {
   const routineTasks = await RoutineTaskService.getFilteredRoutineTasks(
     candyStore.getState().routineTasks
   );
+  
+  const reminderTime = RoutineTaskService.getDailyReminderTime();
 
   // Cancel all previously scheduled notifications to avoid duplicates
   await Notifications.cancelAllScheduledNotificationsAsync();
@@ -83,9 +85,9 @@ export const scheduleNotificationsForRoutineTasks = async () => {
           categoryIdentifier: 'routine-task-actions',
         },
         // trigger: { type: SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, repeats: true },
-        trigger: { type: SchedulableTriggerInputTypes.DAILY, hour: 8, minute: 0 },
+        trigger: { type: SchedulableTriggerInputTypes.DAILY, hour: reminderTime?.getHours() ?? 8, minute: reminderTime?.getMinutes() ?? 0 },
       });
-      log.info(`Notification scheduled for task: ${task.label}`);
+      log.info(`Notification scheduled for task: ${task.label} at ${reminderTime?.getHours()}:${reminderTime?.getMinutes()}`);
     } catch (error) {
       log.error(`Failed to schedule notification for task: ${task.label}`, error);
     }

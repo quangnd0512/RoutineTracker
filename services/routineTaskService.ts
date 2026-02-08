@@ -1,6 +1,7 @@
 import { RoutineTask } from "@/store/candyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import log from "./logger";
+import { useSettingsStore } from "@/store/settingsStore";
 
 export interface UserRoutineTask extends RoutineTask {
   isDone: boolean;
@@ -103,7 +104,7 @@ export class RoutineTaskService {
       if (totalTasksCount && totalTasksCount > 0) {
         const finishedCount = existingTasks
           ? JSON.parse(existingTasks).filter((id: string) => id !== taskId)
-              .length
+            .length
           : 0;
         const rate = finishedCount / totalTasksCount;
         const rateKey = this.genFinishedRoutineTaskRateKey(onDate);
@@ -186,5 +187,28 @@ export class RoutineTaskService {
     log.info(`[RoutineTaskService] Finishing routine task: ${taskId}`);
     const onDate = new Date();
     await this.markFinishedRoutineTask(onDate, taskId);
+  }
+  
+  public static getDailyReminderTime(): Date | null {
+    try {
+      const reminderTime = useSettingsStore.getState().reminderTime;
+      if (reminderTime) {
+        const parsedDate = new Date(reminderTime);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+
+        const [hours, minutes] = reminderTime.split(':').map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+          const date = new Date();
+          date.setHours(hours, minutes, 0, 0);
+          return date;
+        }
+      }
+      return null;
+    } catch (error) {
+      log.error("[RoutineTaskService] Error getting daily reminder time", { error });
+      return null;
+    }
   }
 }

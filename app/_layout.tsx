@@ -38,9 +38,11 @@ export default function RootLayout() {
     if (Platform.OS !== "web") {
       log.info("Setting up notification handler");
       setupNotificationHandler();
-      const unsubscribe = candyStore.subscribe(() => {
-        scheduleNotificationsForRoutineTasks();
-      });
+      // const unsubscribe = candyStore.subscribe(() => {
+      //   scheduleNotificationsForRoutineTasks();
+      // });
+      
+      scheduleNotificationsForRoutineTasks();
 
       return () => {
         // unsubscribe();
