@@ -1,6 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+    dbAddRoutineTask,
+    dbUpdateRoutineTask,
+    dbSoftDeleteRoutineTask,
+} from '@/db/database';
 
 export interface RoutineTask {
     id: string;
@@ -8,7 +11,7 @@ export interface RoutineTask {
     isFavorite: boolean;
     color?: string;
     icon?: string;
-    doItAt?: 'morning' | 'afternoon' | 'evening'; // Time in HH:mm format
+    doItAt?: 'morning' | 'afternoon' | 'evening';
     repeat?: 'daily' | 'weekly' | 'monthly';
     repeatValues?: string[]; // e.g., ['Mon', 'Wed', 'Fri'] for weekly
     endDate?: Date | null;
@@ -23,6 +26,7 @@ export interface CandyProps {
 }
 
 export interface CandyState extends CandyProps {
+    loadRoutineTasks: (tasks: RoutineTask[]) => void;
     increment: () => void;
     addRoutineTask: (task: RoutineTask) => void;
     deleteRoutineTask: (taskId: string) => void;
@@ -38,56 +42,51 @@ const CreateCandyAppStore = (initProps?: Partial<CandyProps>) => {
         routineTasks: [],
     };
 
-    return create<CandyProps & CandyState>()(
-        persist(
-            (set, get) => ({
-                ...defaultProps,
-                ...initProps,
-                increment: () => set((prev) => ({ ...prev, count: prev.count + 1 })),
-                addRoutineTask: (task: RoutineTask) =>
-                    set((state) => ({
-                        routineTasks: [...state.routineTasks, {...task, createdAt: new Date(), updatedAt: new Date(), deletedAt: null}],
-                    })),
-                deleteRoutineTask: (taskId: string) =>
-                    set((state) => ({
-                        routineTasks: state.routineTasks.map((task) =>
-                            task.id === taskId
-                                ? { ...task, deletedAt: new Date() }
-                                : task
-                        ),
-                    })),
-                updateRoutineTask: (taskId: string, updatedTask: Partial<RoutineTask>) =>
-                    set((state) => ({
-                        routineTasks: state.routineTasks.map((task) =>
-                            task.id === taskId ? { ...task, ...updatedTask } : task
-                        ),
-                    })),
-                getRoutineTask: (taskId: string) =>
-                    get().routineTasks.find((task) => task.id === taskId),                
-            }),
-            {
-                name: 'candy-storage',
-                storage: createJSONStorage(() => AsyncStorage),
-                partialize: (state) => ({
-                    count: state.count,
-                    routineTasks: state.routineTasks.map((task) => ({
-                        id: task.id,
-                        label: task.label,
-                        isFavorite: task.isFavorite,
-                        createdAt: task.createdAt,
-                        updatedAt: task.updatedAt,
-                        deletedAt: task.deletedAt,
-                        color: task.color,
-                        icon: task.icon,
-                        doItAt: task.doItAt,
-                        repeat: task.repeat,
-                        repeatValues: task.repeatValues,
-                        endDate: task.endDate,
-                    })),
-                }),
-            }
-        )
-    );
+    return create<CandyProps & CandyState>()((set, get) => ({
+        ...defaultProps,
+        ...initProps,
+
+        // Hydrate in-memory state from SQLite on app startup
+        loadRoutineTasks: (tasks) => set({ routineTasks: tasks }),
+
+        increment: () => set((prev) => ({ ...prev, count: prev.count + 1 })),
+
+        addRoutineTask: async (task: RoutineTask) => {
+            const fullTask: RoutineTask = {
+                ...task,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                deletedAt: null,
+            };
+            await dbAddRoutineTask(fullTask);
+            set((state) => ({
+                routineTasks: [...state.routineTasks, fullTask],
+            }));
+        },
+
+        deleteRoutineTask: async (taskId: string) => {
+            await dbSoftDeleteRoutineTask(taskId);
+            set((state) => ({
+                routineTasks: state.routineTasks.map((task) =>
+                    task.id === taskId
+                        ? { ...task, deletedAt: new Date() }
+                        : task
+                ),
+            }));
+        },
+
+        updateRoutineTask: async (taskId: string, updatedTask: Partial<RoutineTask>) => {
+            await dbUpdateRoutineTask(taskId, updatedTask);
+            set((state) => ({
+                routineTasks: state.routineTasks.map((task) =>
+                    task.id === taskId ? { ...task, ...updatedTask } : task
+                ),
+            }));
+        },
+
+        getRoutineTask: (taskId: string) =>
+            get().routineTasks.find((task) => task.id === taskId),
+    }));
 }
 
 export const candyStore = CreateCandyAppStore();
