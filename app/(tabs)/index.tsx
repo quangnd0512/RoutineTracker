@@ -3,6 +3,7 @@ import { Heading } from "@/components/ui/heading";
 import { Icon } from "@/components/ui/icon";
 import log from "@/services/logger";
 import { RoutineTaskService } from "@/services/routineTaskService";
+import { toLocalDateString } from "@/utils/dateUtils";
 import { useFocusEffect } from "expo-router";
 import {
   ChevronDownIcon,
@@ -40,14 +41,14 @@ const MonthlyCalendar = () => {
       await RoutineTaskService.getFinishedRoutineTasksForDates(datesToFetch);
 
     const finishedDates = results
-      .map((res, index) => {
-        if (res.length > 0) {
-          const date = new Date(markDate);
-          date.setDate(index + 1);
-          return date.toISOString().split("T")[0];
-        }
-        return null;
-      })
+       .map((res, index) => {
+         if (res.length > 0) {
+           const date = new Date(markDate);
+           date.setDate(index + 1);
+           return toLocalDateString(date);
+         }
+         return null;
+       })
       .filter((date) => date !== null);
 
     setMarkFinishedDates(finishedDates);
@@ -57,14 +58,14 @@ const MonthlyCalendar = () => {
         datesToFetch,
       );
     const finishedDateRates = new Map<string, number>();
-    rateResults.forEach((rate, index) => {
-      if (rate !== null) {
-        const date = new Date(markDate);
-        date.setDate(index + 1);
-        const dateStr = date.toISOString().split("T")[0];
-        finishedDateRates.set(dateStr, rate);
-      }
-    });
+     rateResults.forEach((rate, index) => {
+       if (rate !== null) {
+         const date = new Date(markDate);
+         date.setDate(index + 1);
+         const dateStr = toLocalDateString(date);
+         finishedDateRates.set(dateStr, rate);
+       }
+     });
     setMarkFinishedDateRates(finishedDateRates);
 
     log.info(`[HomeScreen] Fetched finished dates: ${finishedDates}`);

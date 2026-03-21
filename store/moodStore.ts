@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getDB } from '@/services/db';
+import { utcToLocalDateString, localDateToUTCRange } from '@/utils/dateUtils';
 
 export type MoodType = 'Great' | 'Good' | 'Okay' | 'Not Good' | 'Bad';
 
@@ -20,11 +21,11 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 
     initialize: async () => {
         const db = await getDB();
-        const rows = await db.getAllAsync<{ date: string; mood_index: number }>(
-            'SELECT date, mood_index FROM mood_logs ORDER BY date'
+        const rows = await db.getAllAsync<{ logged_at: string; mood_index: number }>(
+            'SELECT logged_at, mood_index FROM mood_logs ORDER BY logged_at'
         );
         const moodLogs: MoodLog[] = rows.map((row) => ({
-            date: row.date,
+            date: utcToLocalDateString(row.logged_at),
             moodIndex: row.mood_index,
         }));
         set({ moodLogs });
@@ -32,10 +33,29 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 
     addMoodLog: async (log) => {
         const db = await getDB();
-        await db.runAsync(
-            'INSERT OR REPLACE INTO mood_logs (date, mood_index) VALUES (?, ?)',
-            [log.date, log.moodIndex]
+        const logged_at = new Date().toISOString();
+        const { start, end } = localDateToUTCRange(log.date);
+
+        // Check if a mood log already exists for this local day
+        const existingRow = await db.getFirstAsync<{ logged_at: string }>(
+            'SELECT logged_at FROM mood_logs WHERE logged_at >= ? AND logged_at < ?',
+            [start, end]
         );
+
+        if (existingRow) {
+            // Update existing record for this local day
+            await db.runAsync(
+                'UPDATE mood_logs SET mood_index = ?, logged_at = ? WHERE logged_at >= ? AND logged_at < ?',
+                [log.moodIndex, logged_at, start, end]
+            );
+        } else {
+            // Insert new record
+            await db.runAsync(
+                'INSERT INTO mood_logs (logged_at, mood_index) VALUES (?, ?)',
+                [logged_at, log.moodIndex]
+            );
+        }
+
         set((state) => {
             const filteredLogs = state.moodLogs.filter((l) => l.date !== log.date);
             return { moodLogs: [...filteredLogs, log] };
@@ -47,16 +67,17 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
         if (found) return found;
 
         // Lazy-load from DB if not in memory
+        const { start, end } = localDateToUTCRange(date);
         getDB()
             .then((db) =>
-                db.getFirstAsync<{ date: string; mood_index: number }>(
-                    'SELECT date, mood_index FROM mood_logs WHERE date = ?',
-                    [date]
+                db.getFirstAsync<{ logged_at: string; mood_index: number }>(
+                    'SELECT logged_at, mood_index FROM mood_logs WHERE logged_at >= ? AND logged_at < ? ORDER BY logged_at DESC LIMIT 1',
+                    [start, end]
                 )
             )
             .then((row) => {
                 if (row) {
-                    const log: MoodLog = { date: row.date, moodIndex: row.mood_index };
+                    const log: MoodLog = { date: utcToLocalDateString(row.logged_at), moodIndex: row.mood_index };
                     set((state) => {
                         if (state.moodLogs.some((l) => l.date === date)) return state;
                         return { moodLogs: [...state.moodLogs, log] };

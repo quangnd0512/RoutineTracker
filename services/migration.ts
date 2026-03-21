@@ -90,9 +90,11 @@ export async function migrateFromAsyncStorage(): Promise<void> {
                 if (data) {
                     const taskIds: string[] = JSON.parse(data);
                     for (const taskId of taskIds) {
+                        const [year, month, day] = date.split('-').map(Number);
+                        const localMidnightUtc = new Date(year, month - 1, day).toISOString();
                         await db.runAsync(
-                            `INSERT OR IGNORE INTO task_completions (task_id, date, completed_at) VALUES (?, ?, ?)`,
-                            [taskId, date, `${date}T00:00:00.000Z`]
+                            `INSERT OR IGNORE INTO task_completions (task_id, completed_at_utc) VALUES (?, ?)`,
+                            [taskId, localMidnightUtc]
                         );
                     }
                     log.info(`Migrated completions for date ${date}: ${taskIds.length} tasks`);
@@ -111,9 +113,11 @@ export async function migrateFromAsyncStorage(): Promise<void> {
                 const moodLogs: AsyncStorageMoodLog[] = parsed.state?.moodLogs || [];
 
                 for (const logEntry of moodLogs) {
+                    const [y, m, d] = logEntry.date.split('-').map(Number);
+                    const loggedAt = new Date(y, m - 1, d).toISOString();
                     await db.runAsync(
-                        `INSERT OR REPLACE INTO mood_logs (date, mood_index) VALUES (?, ?)`,
-                        [logEntry.date, logEntry.moodIndex]
+                        `INSERT OR REPLACE INTO mood_logs (logged_at, mood_index) VALUES (?, ?)`,
+                        [loggedAt, logEntry.moodIndex]
                     );
                 }
                 log.info(`Migrated ${moodLogs.length} mood logs`);

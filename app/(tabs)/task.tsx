@@ -26,6 +26,7 @@ import log from "@/services/logger";
 import { Icon } from "@/components/ui/icon";
 import { Fab } from "@/components/ui/fab";
 import i18n from "@/i18n";
+import { toLocalDateString } from "@/utils/dateUtils";
 
 type Task = {
   id: string;
@@ -263,7 +264,7 @@ const FilterTask: React.FC<FilterTaskProps> = React.memo(
         if (event.type !== "dismissed" && selectedDate) {
           onSelectedDateChange(selectedDate);
 
-          const dateString = selectedDate.toISOString().split("T")[0];
+          const dateString = toLocalDateString(selectedDate);
           setDateNames((prevDates) => [
             ...prevDates.slice(0, prevDates.length - 1),
             dateString,

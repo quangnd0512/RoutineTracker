@@ -2,6 +2,11 @@ import { RoutineTask } from "@/store/candyStore";
 import log from "./logger";
 import { useSettingsStore } from "@/store/settingsStore";
 import { getDB } from "@/services/db";
+import {
+  localDateToUTCRange,
+  toLocalDateString,
+  utcToLocalDateString,
+} from "@/utils/dateUtils";
 
 export interface UserRoutineTask extends RoutineTask {
   isDone: boolean;
@@ -46,14 +51,23 @@ export class RoutineTaskService {
       `[RoutineTaskService] Marking finished routine task: ${taskId} - ${onDate}`,
     );
     const db = await getDB();
-    const dateStr = onDate.toISOString().split("T")[0];
-    const completedAt = new Date().toISOString();
+    const localDateStr = toLocalDateString(onDate);
+    const { start, end } = localDateToUTCRange(localDateStr);
+    const completedAtUtc = new Date().toISOString();
 
     try {
-      await db.runAsync(
-        "INSERT OR IGNORE INTO task_completions (task_id, date, completed_at) VALUES (?, ?, ?)",
-        [taskId, dateStr, completedAt],
+      // Check if already exists for this date using UTC range
+      const existing = await db.getFirstAsync<{ id: number }>(
+        "SELECT id FROM task_completions WHERE task_id = ? AND completed_at_utc >= ? AND completed_at_utc < ?",
+        [taskId, start, end],
       );
+
+      if (!existing) {
+        await db.runAsync(
+          "INSERT INTO task_completions (task_id, completed_at_utc) VALUES (?, ?)",
+          [taskId, completedAtUtc],
+        );
+      }
     } catch (error) {
       log.error("[RoutineTaskService] Error setting finished routine task", {
         error,
@@ -70,12 +84,13 @@ export class RoutineTaskService {
       `[RoutineTaskService] Deleting finished routine task: ${taskId} - ${onDate}`,
     );
     const db = await getDB();
-    const dateStr = onDate.toISOString().split("T")[0];
+    const localDateStr = toLocalDateString(onDate);
+    const { start, end } = localDateToUTCRange(localDateStr);
 
     try {
       await db.runAsync(
-        "DELETE FROM task_completions WHERE task_id = ? AND date = ?",
-        [taskId, dateStr],
+        "DELETE FROM task_completions WHERE task_id = ? AND completed_at_utc >= ? AND completed_at_utc < ?",
+        [taskId, start, end],
       );
     } catch (error) {
       log.error("[RoutineTaskService] Error deleting finished routine task", {
@@ -94,12 +109,13 @@ export class RoutineTaskService {
     }
 
     const db = await getDB();
-    const dateStr = onDate.toISOString().split("T")[0];
+    const localDateStr = toLocalDateString(onDate);
+    const { start, end } = localDateToUTCRange(localDateStr);
 
     try {
       const results = await db.getAllAsync<{ task_id: string }>(
-        "SELECT task_id FROM task_completions WHERE date = ?",
-        [dateStr],
+        "SELECT task_id FROM task_completions WHERE completed_at_utc >= ? AND completed_at_utc < ?",
+        [start, end],
       );
       return results.map((row) => row.task_id);
     } catch (error) {
@@ -122,28 +138,39 @@ export class RoutineTaskService {
     }
 
     const db = await getDB();
-    const dateStrings = dates.map((d) => d.toISOString().split("T")[0]);
-    const placeholders = dateStrings.map(() => "?").join(", ");
+    const localDateStrings = dates.map((d) => toLocalDateString(d));
+    const utcRanges = localDateStrings.map((localDateStr) =>
+      localDateToUTCRange(localDateStr),
+    );
 
     try {
-      const results = await db.getAllAsync<{ date: string; task_id: string }>(
-        `SELECT date, task_id FROM task_completions WHERE date IN (${placeholders})`,
-        dateStrings,
+      // Build a UNION query to fetch all dates at once
+      const unionParts = utcRanges.map(() => "SELECT ? as start, ? as end");
+      const unionQuery = unionParts.join(" UNION ALL ");
+      const rangeParams = utcRanges.flatMap((range) => [range.start, range.end]);
+
+      const results = await db.getAllAsync<{ completed_at_utc: string; task_id: string }>(
+        `SELECT tc.completed_at_utc, tc.task_id
+         FROM task_completions tc
+         JOIN (${unionQuery}) AS ranges
+         ON tc.completed_at_utc >= ranges.start AND tc.completed_at_utc < ranges.end`,
+        rangeParams,
       );
 
-      // Group task_ids by date
-      const tasksByDate = new Map<string, string[]>();
-      for (const dateStr of dateStrings) {
-        tasksByDate.set(dateStr, []);
+      // Group task_ids by local date (derived from completed_at_utc)
+      const tasksByLocalDate = new Map<string, string[]>();
+      for (const localDateStr of localDateStrings) {
+        tasksByLocalDate.set(localDateStr, []);
       }
       for (const row of results) {
-        const existing = tasksByDate.get(row.date) || [];
+        const localDateStr = utcToLocalDateString(row.completed_at_utc);
+        const existing = tasksByLocalDate.get(localDateStr) || [];
         existing.push(row.task_id);
-        tasksByDate.set(row.date, existing);
+        tasksByLocalDate.set(localDateStr, existing);
       }
 
       // Return in same order as input dates
-      return dateStrings.map((dateStr) => tasksByDate.get(dateStr) || []);
+      return localDateStrings.map((dateStr) => tasksByLocalDate.get(dateStr) || []);
     } catch (error) {
       log.error(
         "[RoutineTaskService] Error getting batch finished routine tasks",
@@ -169,12 +196,15 @@ export class RoutineTaskService {
     }
 
     const db = await getDB();
-    const dateStrings = onDates.map((d) => d.toISOString().split("T")[0]);
+    const localDateStrings = onDates.map((d) => toLocalDateString(d));
+    const utcRanges = localDateStrings.map((localDateStr) =>
+      localDateToUTCRange(localDateStr),
+    );
 
     try {
       const results: number[] = [];
 
-      for (const dateStr of dateStrings) {
+      for (const { start, end } of utcRanges) {
         const result = await db.getFirstAsync<{
           completion_rate: number | null;
         }>(
@@ -182,9 +212,9 @@ export class RoutineTaskService {
             COUNT(tc.id) * 1.0 / COUNT(rt.id) AS completion_rate
           FROM routine_tasks rt
           LEFT JOIN task_completions tc
-            ON tc.task_id = rt.id AND tc.date = ?
+            ON tc.task_id = rt.id AND tc.completed_at_utc >= ? AND tc.completed_at_utc < ?
           WHERE rt.deleted_at IS NULL`,
-          [dateStr],
+          [start, end],
         );
         results.push(result?.completion_rate ?? 0);
       }

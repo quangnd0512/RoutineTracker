@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
 import i18n from "@/i18n";
+import { todayLocalDateString } from "@/utils/dateUtils";
 
 export default function MoodScreen() {
   const DAYS_OF_WEEK = [
@@ -101,7 +102,7 @@ export default function MoodScreen() {
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const log = getMoodLog(dateStr);
-      const isToday = dateStr === new Date().toISOString().split("T")[0];
+      const isToday = dateStr === todayLocalDateString();
 
       cells.push(
         <Pressable
