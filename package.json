@@ -8,7 +8,8 @@
     "android": "cross-env DARK_MODE=media expo run:android",
     "ios": "cross-env DARK_MODE=media expo run:ios",
     "web": "cross-env DARK_MODE=media expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:date": "node utils/dateUtils.test.js"
   },
   "dependencies": {
     "@expo/html-elements": "0.4.2",
