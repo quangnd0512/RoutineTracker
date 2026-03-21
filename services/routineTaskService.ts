@@ -1,7 +1,7 @@
 import { RoutineTask } from "@/store/candyStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import log from "./logger";
 import { useSettingsStore } from "@/store/settingsStore";
+import { getDB } from "@/services/db";
 
 export interface UserRoutineTask extends RoutineTask {
   isDone: boolean;
@@ -37,45 +37,23 @@ export class RoutineTaskService {
     return filteredRoutineTasks;
   }
 
-  private static genFinishedRoutineTaskOnDateKey(onDate: Date | null): string {
-    if (!onDate) {
-      return "";
-    }
-    return `RoutineTask:Finished:${onDate.toISOString().split("T")[0]}`;
-  }
-
-  private static genFinishedRoutineTaskRateKey(onDate: Date | null): string {
-    if (!onDate) {
-      return "";
-    }
-    return `RoutineTask:FinishedRate:${onDate.toISOString().split("T")[0]}`;
-  }
-
   public static async markFinishedRoutineTask(
     onDate: Date,
     taskId: string,
-    totalTasksCount?: number,
+    _totalTasksCount?: number,
   ): Promise<void> {
     log.info(
       `[RoutineTaskService] Marking finished routine task: ${taskId} - ${onDate}`,
     );
-    const key = this.genFinishedRoutineTaskOnDateKey(onDate);
-    const rateKey = this.genFinishedRoutineTaskRateKey(onDate);
+    const db = await getDB();
+    const dateStr = onDate.toISOString().split("T")[0];
+    const completedAt = new Date().toISOString();
 
     try {
-      const existingTasks = await AsyncStorage.getItem(key);
-      const updatedTasks = existingTasks
-        ? [...JSON.parse(existingTasks), taskId]
-        : [taskId];
-      await AsyncStorage.setItem(
-        key,
-        JSON.stringify(Array.from(new Set(updatedTasks))),
+      await db.runAsync(
+        "INSERT OR IGNORE INTO task_completions (task_id, date, completed_at) VALUES (?, ?, ?)",
+        [taskId, dateStr, completedAt],
       );
-      if (totalTasksCount && totalTasksCount > 0) {
-        const finishedCount = Array.from(new Set(updatedTasks)).length;
-        const rate = finishedCount / totalTasksCount;
-        await AsyncStorage.setItem(rateKey, rate.toString());
-      }
     } catch (error) {
       log.error("[RoutineTaskService] Error setting finished routine task", {
         error,
@@ -86,30 +64,19 @@ export class RoutineTaskService {
   public static async deleteFinishedRoutineTask(
     onDate: Date,
     taskId: string,
-    totalTasksCount?: number,
+    _totalTasksCount?: number,
   ): Promise<void> {
     log.info(
       `[RoutineTaskService] Deleting finished routine task: ${taskId} - ${onDate}`,
     );
-    const key = this.genFinishedRoutineTaskOnDateKey(onDate);
+    const db = await getDB();
+    const dateStr = onDate.toISOString().split("T")[0];
 
     try {
-      const existingTasks = await AsyncStorage.getItem(key);
-      if (existingTasks) {
-        const updatedTasks = JSON.parse(existingTasks).filter(
-          (id: string) => id !== taskId,
-        );
-        await AsyncStorage.setItem(key, JSON.stringify(updatedTasks));
-      }
-      if (totalTasksCount && totalTasksCount > 0) {
-        const finishedCount = existingTasks
-          ? JSON.parse(existingTasks).filter((id: string) => id !== taskId)
-            .length
-          : 0;
-        const rate = finishedCount / totalTasksCount;
-        const rateKey = this.genFinishedRoutineTaskRateKey(onDate);
-        await AsyncStorage.setItem(rateKey, rate.toString());
-      }
+      await db.runAsync(
+        "DELETE FROM task_completions WHERE task_id = ? AND date = ?",
+        [taskId, dateStr],
+      );
     } catch (error) {
       log.error("[RoutineTaskService] Error deleting finished routine task", {
         error,
@@ -121,11 +88,20 @@ export class RoutineTaskService {
     onDate: Date | null = new Date(),
   ): Promise<string[]> {
     log.info("[RoutineTaskService] Getting finished routine tasks", { onDate });
-    const key = this.genFinishedRoutineTaskOnDateKey(onDate);
+
+    if (!onDate) {
+      return [];
+    }
+
+    const db = await getDB();
+    const dateStr = onDate.toISOString().split("T")[0];
 
     try {
-      const result = await AsyncStorage.getItem(key);
-      return result ? JSON.parse(result) : [];
+      const results = await db.getAllAsync<{ task_id: string }>(
+        "SELECT task_id FROM task_completions WHERE date = ?",
+        [dateStr],
+      );
+      return results.map((row) => row.task_id);
     } catch (error) {
       log.error("[RoutineTaskService] Error getting finished routine tasks", {
         error,
@@ -140,14 +116,34 @@ export class RoutineTaskService {
     log.info("[RoutineTaskService] Getting finished routine tasks for dates", {
       count: dates.length,
     });
-    const keys = dates.map((date) =>
-      this.genFinishedRoutineTaskOnDateKey(date),
-    );
+
+    if (dates.length === 0) {
+      return [];
+    }
+
+    const db = await getDB();
+    const dateStrings = dates.map((d) => d.toISOString().split("T")[0]);
+    const placeholders = dateStrings.map(() => "?").join(", ");
 
     try {
-      const results = await AsyncStorage.multiGet(keys);
-      // results is [ [key, value], [key, value] ]
-      return results.map(([_, value]) => (value ? JSON.parse(value) : []));
+      const results = await db.getAllAsync<{ date: string; task_id: string }>(
+        `SELECT date, task_id FROM task_completions WHERE date IN (${placeholders})`,
+        dateStrings,
+      );
+
+      // Group task_ids by date
+      const tasksByDate = new Map<string, string[]>();
+      for (const dateStr of dateStrings) {
+        tasksByDate.set(dateStr, []);
+      }
+      for (const row of results) {
+        const existing = tasksByDate.get(row.date) || [];
+        existing.push(row.task_id);
+        tasksByDate.set(row.date, existing);
+      }
+
+      // Return in same order as input dates
+      return dateStrings.map((dateStr) => tasksByDate.get(dateStr) || []);
     } catch (error) {
       log.error(
         "[RoutineTaskService] Error getting batch finished routine tasks",
@@ -157,22 +153,43 @@ export class RoutineTaskService {
       return dates.map(() => []);
     }
   }
-  
+
   public static async getFinishedRoutineTaskRatesForDates(
     onDates: Date[],
   ): Promise<number[]> {
-    log.info("[RoutineTaskService] Getting finished routine task rates for dates", {
-      count: onDates.length,
-    });
-    const keys = onDates.map((date) =>
-      this.genFinishedRoutineTaskRateKey(date),
+    log.info(
+      "[RoutineTaskService] Getting finished routine task rates for dates",
+      {
+        count: onDates.length,
+      },
     );
 
+    if (onDates.length === 0) {
+      return [];
+    }
+
+    const db = await getDB();
+    const dateStrings = onDates.map((d) => d.toISOString().split("T")[0]);
+
     try {
-      const results = await AsyncStorage.multiGet(keys);
-      // results is [ [key, value], [key, value] ]
-      
-      return results.map(([_, value]) => (value ? parseFloat(value) : 0));
+      const results: number[] = [];
+
+      for (const dateStr of dateStrings) {
+        const result = await db.getFirstAsync<{
+          completion_rate: number | null;
+        }>(
+          `SELECT
+            COUNT(tc.id) * 1.0 / COUNT(rt.id) AS completion_rate
+          FROM routine_tasks rt
+          LEFT JOIN task_completions tc
+            ON tc.task_id = rt.id AND tc.date = ?
+          WHERE rt.deleted_at IS NULL`,
+          [dateStr],
+        );
+        results.push(result?.completion_rate ?? 0);
+      }
+
+      return results;
     } catch (error) {
       log.error(
         "[RoutineTaskService] Error getting batch finished routine task rates",
@@ -188,7 +205,7 @@ export class RoutineTaskService {
     const onDate = new Date();
     await this.markFinishedRoutineTask(onDate, taskId);
   }
-  
+
   public static getDailyReminderTime(): Date | null {
     try {
       const reminderTime = useSettingsStore.getState().reminderTime;
@@ -198,16 +215,30 @@ export class RoutineTaskService {
           return parsedDate;
         }
 
-        const [hours, minutes] = reminderTime.split(':').map(Number);
+        const hours = parsedDate.getHours();
+        const minutes = parsedDate.getMinutes();
+
         if (!isNaN(hours) && !isNaN(minutes)) {
+          log.info("[RoutineTaskService] Daily reminder time parsed", {
+            hours,
+            minutes,
+          });
+          
           const date = new Date();
           date.setHours(hours, minutes, 0, 0);
           return date;
         }
+        
+        log.warn("[RoutineTaskService] Daily reminder time invalid", {
+          reminderTime,
+        });
+        return null;
       }
       return null;
     } catch (error) {
-      log.error("[RoutineTaskService] Error getting daily reminder time", { error });
+      log.error("[RoutineTaskService] Error getting daily reminder time", {
+        error,
+      });
       return null;
     }
   }

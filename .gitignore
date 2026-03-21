@@ -41,3 +41,5 @@ android/
 ios/
 
 mise.toml
+.sisyphus
+.agents

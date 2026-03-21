@@ -8,11 +8,15 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { CandyContext } from "@/store/context";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { candyStore } from "@/store/candyStore";
+import { useMoodStore } from "@/store/moodStore";
+import { useSettingsStore } from "@/store/settingsStore";
 import { scheduleNotificationsForRoutineTasks, setupNotificationHandler } from "@/services/notification";
 import { Platform } from "react-native";
 import log from "@/services/logger";
+import { getDB } from "@/services/db";
+import { migrateFromAsyncStorage } from "@/services/migration";
 
 type CandyProviderProps = React.PropsWithChildren<{}>;
 
@@ -33,8 +37,39 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Step 1: Open DB and run migrations
+        log.info("Initializing database...");
+        await getDB();
+
+        // Step 2: Migrate old AsyncStorage data if needed
+        log.info("Running data migration...");
+        await migrateFromAsyncStorage();
+
+        // Step 3: Initialize stores
+        log.info("Initializing stores...");
+        await candyStore.getState().initialize();
+        await useMoodStore.getState().initialize();
+        await useSettingsStore.getState().loadSettings();
+
+        setIsReady(true);
+      } catch (error) {
+        log.error("App initialization failed:", error);
+        // Don't crash - allow app to continue even if migration fails
+        setIsReady(true);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  useEffect(() => {
+    if (!isReady) return;
+
     if (Platform.OS !== "web") {
       log.info("Setting up notification handler");
       setupNotificationHandler();
@@ -48,10 +83,11 @@ export default function RootLayout() {
         // unsubscribe();
       };
     }
-  }, []);
+  }, [isReady]);
 
-  if (!loaded) {
+  if (!loaded || !isReady) {
     // Async font loading only occurs in development.
+    // Block rendering until DB is ready and migration is complete.
     return null;
   }
 
