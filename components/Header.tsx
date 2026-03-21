@@ -7,13 +7,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SettingsIcon } from 'lucide-react-native';
 import { Link } from 'expo-router';
 import { Pressable } from 'react-native';
+import { useSettingsStore } from '@/store/settingsStore';
+
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US',
+  vi: 'vi-VN',
+};
 
 interface HeaderProps {
   title: string;
 }
 
 export const Header = ({ title }: HeaderProps) => {
-  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' });
+  const language = useSettingsStore((state) => state.language);
+  const locale = LOCALE_MAP[language] ?? 'en-US';
+  const date = new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
 
   return (
     <Box className="bg-white">
