@@ -5,12 +5,13 @@ import log from "@/services/logger";
 import { RoutineTaskService } from "@/services/routineTaskService";
 import { toLocalDateString } from "@/utils/dateUtils";
 import { useFocusEffect } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { BarChart, LineChart } from "react-native-gifted-charts";
@@ -18,7 +19,7 @@ import { useMoodStore } from "@/store/moodStore";
 
 import i18n from "@/i18n";
 
-const MonthlyCalendar = () => {
+const MonthlyCalendar = React.memo(() => {
   const [markFinishedDates, setMarkFinishedDates] = useState<string[]>([]);
   const [markFinishedDateRates, setMarkFinishedDateRates] = useState<
     Map<string, number>
@@ -84,17 +85,22 @@ const MonthlyCalendar = () => {
 
   useFocusEffect(memoizedFetchFinishedDates);
 
-  const markedDates: { [date: string]: { marked: boolean; rate: number } } = {
-    // '2025-08-27': { marked: true },
-    // '2025-08-28': { marked: true }
-  };
-  for (const date of markFinishedDates) {
-    markedDates[date] = { marked: true, rate: 0 };
-    if (markFinishedDateRates.has(date)) {
-      const rate = markFinishedDateRates.get(date) ?? 0;
-      markedDates[date].rate = rate;
+  const markedDates = useMemo(() => {
+    const result: { [date: string]: { marked: boolean; rate: number } } = {};
+    for (const date of markFinishedDates) {
+      result[date] = { marked: true, rate: 0 };
+      if (markFinishedDateRates.has(date)) {
+        const rate = markFinishedDateRates.get(date) ?? 0;
+        result[date].rate = rate;
+      }
     }
-  }
+    return result;
+  }, [markFinishedDates, markFinishedDateRates]);
+
+  const handleMonthChange = useCallback(
+    (month: Date) => fetchFinishedDates(month),
+    []
+  );
 
   return (
     <StatsView
@@ -102,14 +108,15 @@ const MonthlyCalendar = () => {
       data={{
         markFinishedDates,
         markedDates,
-        onMonthChange: (month) => fetchFinishedDates(month),
+        onMonthChange: handleMonthChange,
       }}
       type="progress_calendar"
     />
   );
-};
+});
+MonthlyCalendar.displayName = 'MonthlyCalendar';
 
-const WeeklyChart = () => {
+const WeeklyChart = React.memo(() => {
   const [taskCounts, setTaskCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   async function fetchTasks() {
@@ -149,9 +156,10 @@ const WeeklyChart = () => {
   useFocusEffect(memoizedFetchTasks);
 
   return <StatsView title={i18n.t('tasks_completed')} data={{ taskCounts }} type="bar" />;
-};
+});
+WeeklyChart.displayName = 'WeeklyChart';
 
-const MoodChart = () => {
+const MoodChart = React.memo(() => {
   const moodLogs = useMoodStore((state) => state.moodLogs);
   const { width } = useWindowDimensions();
 
@@ -213,7 +221,8 @@ const MoodChart = () => {
       type="line"
     />
   );
-};
+});
+MoodChart.displayName = 'MoodChart';
 
 interface StatsViewProps {
   title: string;
@@ -229,7 +238,7 @@ interface StatsViewProps {
   type?: "bar" | "line" | "progress_calendar";
 }
 
-const StatsView = ({ title, data, type = "bar" }: StatsViewProps) => {
+const StatsView = React.memo(({ title, data, type = "bar" }: StatsViewProps) => {
   let chartComponent = null;
   switch (type) {
     case "bar":
@@ -301,9 +310,10 @@ const StatsView = ({ title, data, type = "bar" }: StatsViewProps) => {
       </View>
     </View>
   );
-};
+});
+StatsView.displayName = 'StatsView';
 
-const MoodLineChart = ({
+const MoodLineChart = React.memo(({
   lineData,
   spacing = 40,
   width = 300,
@@ -321,7 +331,6 @@ const MoodLineChart = ({
   // 2 -> 😐 (index 2)
   // 3 -> 😊 (index 1)
   // 4 -> 😎 (index 0)
-  // console.log("MoodLineChart data:", lineData);
   const yAxisLabelTexts = [" ", "😡", "😢", "😐", "😊", "😎"];
 
   return (
@@ -359,9 +368,10 @@ const MoodLineChart = ({
       />
     </View>
   );
-};
+});
+MoodLineChart.displayName = 'MoodLineChart';
 
-const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
+const BarChartView = React.memo(({ taskCounts }: { taskCounts: number[] }) => {
   const [pressedBarIndex, setPressedBarIndex] = useState(-1);
   const labels = [
     i18n.t('mon'), i18n.t('tue'), i18n.t('wed'), i18n.t('thu'), i18n.t('fri'), i18n.t('sat'), i18n.t('sun')
@@ -442,14 +452,15 @@ const BarChartView = ({ taskCounts }: { taskCounts: number[] }) => {
       }}
     />
   );
-};
+});
+BarChartView.displayName = 'BarChartView';
 
 interface CalendarViewProps {
   markedDates?: { [date: string]: { marked: boolean; rate: number } };
   onMonthChange?: (month: Date) => void;
 }
 
-const CalendarView = ({ markedDates, onMonthChange }: CalendarViewProps) => {
+const CalendarView = React.memo(({ markedDates, onMonthChange }: CalendarViewProps) => {
   return (
     <Calendar
       style={{ borderRadius: 12, overflow: "hidden" }}
@@ -520,12 +531,24 @@ const CalendarView = ({ markedDates, onMonthChange }: CalendarViewProps) => {
       }}
     />
   );
-};
+});
+CalendarView.displayName = 'CalendarView';
 
 export default function HomeScreen() {
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, [])
+  );
+
+  useScrollToTop(scrollViewRef);
+
   return (
     <View className="flex-1 bg-gray-50/50">
       <ScrollView
+        ref={scrollViewRef}
         className="pt-4"
         contentContainerStyle={{ paddingBottom: 100 }}
         showsHorizontalScrollIndicator={false}

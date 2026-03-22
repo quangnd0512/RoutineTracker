@@ -2,7 +2,8 @@ import { RoutineTaskService } from "@/services/routineTaskService";
 import { useCandyContext } from "@/store/context";
 import { useStreakStore } from "@/store/streakStore";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -38,6 +39,74 @@ type Task = {
   icon?: string;
 };
 
+// ── Sub-step B: Module-level ItemView ──────────────────────────────────────
+
+interface ItemViewProps {
+  task: Task;
+  onItemPress?: (taskId: string) => void;
+}
+
+const ItemView = React.memo(({ task, onItemPress }: ItemViewProps) => {
+  return (
+    <View
+      className="bg-white rounded-2xl mb-3 mx-4 p-4 border border-gray-100 flex-row items-center"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+      }}
+    >
+      <TouchableOpacity
+        className="flex-1 flex-row items-center"
+        onPress={() => {
+          onItemPress?.(task.id);
+        }}
+        activeOpacity={0.7}
+      >
+        <View
+          className="h-12 w-12 rounded-full items-center justify-center mr-4 bg-gray-50 border border-gray-100"
+          style={
+            task.color
+              ? { backgroundColor: task.color + "20" } // 20 opacity hex
+              : {}
+          }
+        >
+          <Text style={{ fontSize: 24 }}>{task.icon || "📝"}</Text>
+        </View>
+
+        <View className="flex-1">
+          <Text
+            className={`text-base font-semibold ${
+              task.isDone ? "text-gray-400 line-through" : "text-gray-800"
+            }`}
+            numberOfLines={1}
+          >
+            {task.label}
+          </Text>
+          {task.isDone && (
+            <Text className="text-xs text-gray-400 mt-0.5">
+              {i18n.t('completed')}
+            </Text>
+          )}
+        </View>
+
+        {task.isDone ? (
+          <View className="bg-green-100 p-1.5 rounded-full">
+            <Icon as={CheckIcon} className="text-green-600" size="sm" />
+          </View>
+        ) : (
+          <View className="w-6 h-6 rounded-full border-2 border-gray-200" />
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+});
+ItemView.displayName = "ItemView";
+
+// ── RoutineTask ────────────────────────────────────────────────────────────
+
 type RoutineTaskProps = {
   task: Task;
   onToggle: (taskId: string) => void;
@@ -63,7 +132,6 @@ const RoutineTask = React.memo(
       ref,
     ) => {
       const SCREEN_WIDTH = Dimensions.get("window").width;
-      const translateX = useRef(new Animated.Value(0)).current;
 
       const renderRightActions = (
         progress: Animated.AnimatedInterpolation<number>,
@@ -130,64 +198,6 @@ const RoutineTask = React.memo(
         );
       };
 
-      const ItemView = () => {
-        return (
-          <View
-            className="bg-white rounded-2xl mb-3 mx-4 p-4 border border-gray-100 flex-row items-center"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8,
-              elevation: 2,
-            }}
-          >
-            <TouchableOpacity
-              className="flex-1 flex-row items-center"
-              onPress={() => {
-                onItemPress?.(task.id);
-              }}
-              activeOpacity={0.7}
-            >
-              <View
-                className="h-12 w-12 rounded-full items-center justify-center mr-4 bg-gray-50 border border-gray-100"
-                style={
-                  task.color
-                    ? { backgroundColor: task.color + "20" } // 20 opacity hex
-                    : {}
-                }
-              >
-                <Text style={{ fontSize: 24 }}>{task.icon || "📝"}</Text>
-              </View>
-
-              <View className="flex-1">
-                <Text
-                  className={`text-base font-semibold ${
-                    task.isDone ? "text-gray-400 line-through" : "text-gray-800"
-                  }`}
-                  numberOfLines={1}
-                >
-                  {task.label}
-                </Text>
-                {task.isDone && (
-                  <Text className="text-xs text-gray-400 mt-0.5">
-                    {i18n.t('completed')}
-                  </Text>
-                )}
-              </View>
-
-              {task.isDone ? (
-                <View className="bg-green-100 p-1.5 rounded-full">
-                  <Icon as={CheckIcon} className="text-green-600" size="sm" />
-                </View>
-              ) : (
-                <View className="w-6 h-6 rounded-full border-2 border-gray-200" />
-              )}
-            </TouchableOpacity>
-          </View>
-        );
-      };
-
       return (
         <Swipeable
           ref={ref}
@@ -218,9 +228,7 @@ const RoutineTask = React.memo(
             log.info("[RoutineTask] onSwipeableLeftWillOpen");
           }}
         >
-          <Animated.View style={{ transform: [{ translateX }] }}>
-            <ItemView />
-          </Animated.View>
+          <ItemView task={task} onItemPress={onItemPress} />
         </Swipeable>
       );
     },
@@ -228,69 +236,64 @@ const RoutineTask = React.memo(
 );
 RoutineTask.displayName = "RoutineTask";
 
+// ── FilterTask ─────────────────────────────────────────────────────────────
+
+type FilterType = 'today' | 'yesterday' | 'custom';
+
 interface FilterTaskProps {
   selectedDate: Date | null;
   onSelectedDateChange: (date: Date | null) => void;
 }
 const FilterTask: React.FC<FilterTaskProps> = React.memo(
   ({ selectedDate, onSelectedDateChange }) => {
-    const DATE_NAME_DEFAULT_OPTIONS = [i18n.t('today'), i18n.t('yesterday'), i18n.t('other')];
-    
-    const [dateNames, setDateNames] = useState<string[]>(
-      DATE_NAME_DEFAULT_OPTIONS,
-    );
-    const [selectedDateName, setSelectedDateName] = useState<string>(i18n.t('today'));
+    const [dateNames, setDateNames] = useState<string[]>([
+      i18n.t('today'),
+      i18n.t('yesterday'),
+      i18n.t('other'),
+    ]);
+    const [selectedType, setSelectedType] = useState<FilterType>('today');
+    const [customDateLabel, setCustomDateLabel] = useState<string | null>(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
-    // Update dateNames when language changes
-    useEffect(() => {
-        const newOptions = [i18n.t('today'), i18n.t('yesterday'), i18n.t('other')];
-        setDateNames(prev => {
-            // Keep any custom dates that were added (dates that are not Today/Yesterday/Other)
-            const customDates = prev.filter(d => !DATE_NAME_DEFAULT_OPTIONS.includes(d) && !newOptions.includes(d));
-            return [...newOptions, ...customDates];
-        });
-        // Update selection if it was one of the default options
-        if (DATE_NAME_DEFAULT_OPTIONS.includes(selectedDateName)) {
-             if (selectedDateName === i18n.t('today') || selectedDateName === "Today" || selectedDateName === "Hôm nay") setSelectedDateName(i18n.t('today'));
-             else if (selectedDateName === i18n.t('yesterday') || selectedDateName === "Yesterday" || selectedDateName === "Hôm qua") setSelectedDateName(i18n.t('yesterday'));
-             else if (selectedDateName === i18n.t('other') || selectedDateName === "Other" || selectedDateName === "Khác") setSelectedDateName(i18n.t('other'));
-        }
-    }, [i18n.locale]);
+    const activePillLabel =
+      selectedType === 'today' ? i18n.t('today') :
+      selectedType === 'yesterday' ? i18n.t('yesterday') :
+      customDateLabel ?? i18n.t('other');
 
+    // Update dateNames when language or selection changes
+    useEffect(() => {
+      setDateNames([
+        i18n.t('today'),
+        i18n.t('yesterday'),
+        selectedType === 'custom' && customDateLabel ? customDateLabel : i18n.t('other'),
+      ]);
+    }, [i18n.locale, selectedType, customDateLabel]);
 
     const onDatePickerChange = useCallback(
       (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (event.type !== "dismissed" && selectedDate) {
           onSelectedDateChange(selectedDate);
-
           const dateString = toLocalDateString(selectedDate);
-          setDateNames((prevDates) => [
-            ...prevDates.slice(0, prevDates.length - 1),
-            dateString,
-          ]);
-          setSelectedDateName(dateString);
+          setSelectedType('custom');
+          setCustomDateLabel(dateString);
         }
       },
       [onSelectedDateChange],
     );
 
     const onSelectItem = useCallback(
-      (name: string) => {
-        const onDate = new Date();
-
-        if (name === i18n.t('today')) {
-            setSelectedDateName(name);
-            setDateNames([i18n.t('today'), i18n.t('yesterday'), i18n.t('other')]);
-            onSelectedDateChange(onDate);
-        } else if (name === i18n.t('yesterday')) {
-            onDate.setDate(onDate.getDate() - 1);
-            onSelectedDateChange(onDate);
-            setSelectedDateName(name);
-            setDateNames([i18n.t('today'), i18n.t('yesterday'), i18n.t('other')]);
+      (index: number) => {
+        if (index === 0) {
+          setSelectedType('today');
+          onSelectedDateChange(new Date());
+        } else if (index === 1) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          setSelectedType('yesterday');
+          onSelectedDateChange(yesterday);
         } else {
-             setShowDatePicker(true);
+          setShowDatePicker(true);
         }
       },
       [onSelectedDateChange],
@@ -311,16 +314,16 @@ const FilterTask: React.FC<FilterTaskProps> = React.memo(
           horizontal
           showsHorizontalScrollIndicator={false}
           data={dateNames}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <TouchableOpacity
-              onPress={() => onSelectItem(item)}
+              onPress={() => onSelectItem(index)}
               className={`mr-3 px-5 py-2.5 rounded-full border ${
-                item === selectedDateName
+                item === activePillLabel
                   ? "bg-[#8882e7] border-[#8882e7]"
                   : "bg-white border-gray-200"
               }`}
               style={
-                item !== selectedDateName
+                item !== activePillLabel
                   ? {
                       shadowColor: "#000",
                       shadowOpacity: 0.05,
@@ -333,7 +336,7 @@ const FilterTask: React.FC<FilterTaskProps> = React.memo(
             >
               <Text
                 className={`font-semibold text-sm ${
-                  item === selectedDateName ? "text-white" : "text-gray-600"
+                  item === activePillLabel ? "text-white" : "text-gray-600"
                 }`}
               >
                 {item}
@@ -348,14 +351,38 @@ const FilterTask: React.FC<FilterTaskProps> = React.memo(
 );
 FilterTask.displayName = "FilterTask";
 
+// ── TaskScreen ─────────────────────────────────────────────────────────────
+
 export default function TaskScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const openRowRef = useRef<Swipeable | null>(null);
+  const openSwipeableRef = useRef<Swipeable | null>(null);
+  const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
+  const sectionListRef = useRef<SectionList<Task>>(null);
   const [filteredOnDate, setFilteredOnDate] = useState<Date | null>(new Date());
   const router = useRouter();
 
   const routineTasks = useCandyContext((state) => state.routineTasks);
   const updateRoutineTask = useCandyContext((state) => state.updateRoutineTask);
+
+  // Sub-step A: Cleanup stale refs when tasks change
+  useEffect(() => {
+    const taskIds = new Set(tasks.map((t) => t.id));
+    for (const key of swipeableRefs.current.keys()) {
+      if (!taskIds.has(key)) swipeableRefs.current.delete(key);
+    }
+  }, [tasks]);
+
+  // Sub-step A: Mount cleanup
+  useEffect(() => () => { swipeableRefs.current.clear(); }, []);
+
+  // Sub-step G: Scroll to top on focus
+  useFocusEffect(
+    useCallback(() => {
+      sectionListRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
+    }, [])
+  );
+
+  useScrollToTop(sectionListRef as any);
 
   useEffect(() => {
     RoutineTaskService.getFilteredRoutineTasks(
@@ -439,24 +466,26 @@ export default function TaskScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Task }) => {
-      const ref = React.createRef<Swipeable>();
+      const callbackRef = (el: Swipeable | null) => {
+        swipeableRefs.current.set(item.id, el);
+      };
 
       const handleSwipeableWillOpen = () => {
-        if (openRowRef.current && openRowRef.current !== ref.current) {
-          openRowRef.current.close();
+        if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRefs.current.get(item.id)) {
+          openSwipeableRef.current.close();
         }
-        openRowRef.current = ref.current;
+        openSwipeableRef.current = swipeableRefs.current.get(item.id) ?? null;
       };
 
       const handleClose = () => {
-        if (openRowRef.current === ref.current) {
-          openRowRef.current = null;
+        if (openSwipeableRef.current === swipeableRefs.current.get(item.id)) {
+          openSwipeableRef.current = null;
         }
       };
 
       return (
         <RoutineTask
-          ref={ref}
+          ref={callbackRef}
           task={item}
           onToggle={handleToggleTask}
           onToggleFavorite={handleToggleFavorite}
@@ -479,6 +508,7 @@ export default function TaskScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View className="flex-1 bg-gray-50/50 pt-4">
         <SectionList
+          ref={sectionListRef}
           sections={[
             { title: i18n.t('todo'), data: todoTasks },
             { title: i18n.t('completed'), data: doneTasks },
@@ -504,12 +534,23 @@ export default function TaskScreen() {
               onSelectedDateChange={setFilteredOnDate}
             />
           }
+          ListEmptyComponent={() => (
+            <View className="flex-1 items-center justify-center py-20 px-8">
+              <Text style={{ fontSize: 48 }}>📋</Text>
+              <Text className="text-gray-400 text-base font-semibold mt-4 text-center">
+                No tasks for this day
+              </Text>
+            </View>
+          )}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={() => {
-            openRowRef.current?.close();
+            openSwipeableRef.current?.close();
           }}
           stickySectionHeadersEnabled={false}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
         />
 
         <Fab
