@@ -1,6 +1,5 @@
 import * as SQLite from 'expo-sqlite';
 import log from './logger';
-import { toLocalDateString } from '@/utils/dateUtils';
 
 export type SQLiteDatabase = SQLite.SQLiteDatabase;
 
