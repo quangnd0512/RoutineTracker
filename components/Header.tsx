@@ -2,11 +2,7 @@ import React from 'react';
 import { Text } from '@/components/ui/text';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
-import { Icon } from '@/components/ui/icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SettingsIcon } from 'lucide-react-native';
-import { Link } from 'expo-router';
-import { Pressable } from 'react-native';
 import { useSettingsStore } from '@/store/settingsStore';
 
 const LOCALE_MAP: Record<string, string> = {
@@ -35,14 +31,6 @@ export const Header = ({ title }: HeaderProps) => {
               {title}
             </Text>
           </VStack>
-          
-          <Link href="/settings" asChild>
-            <Pressable>
-              <Box className="h-10 w-10 bg-white rounded-full items-center justify-center border border-gray-200">
-                <Icon as={SettingsIcon} className="text-gray-400 w-5 h-5" />
-              </Box>
-            </Pressable>
-          </Link>
         </Box>
       </SafeAreaView>
     </Box>

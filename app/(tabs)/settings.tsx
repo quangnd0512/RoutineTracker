@@ -77,7 +77,6 @@ export default function SettingScreen() {
       <Stack.Screen
         options={{
           title: i18n.t("settings"),
-          headerBackTitle: "Back",
           headerShadowVisible: false,
           headerStyle: { backgroundColor: "#F9FAFB" }, // Matches bg-gray-50
         }}

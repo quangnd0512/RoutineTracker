@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Icon } from '@/components/ui/icon';
-import { HouseIcon, ListChecksIcon, SmilePlusIcon } from 'lucide-react-native';
+import { HouseIcon, ListChecksIcon, SmilePlusIcon, SettingsIcon } from 'lucide-react-native';
 import { Header } from '@/components/Header';
 import i18n from '@/i18n';
 
@@ -49,6 +49,13 @@ export default function TabLayout() {
         options={{
           title: i18n.t('moods'),
           tabBarIcon: ({ focused }) => <Icon as={SmilePlusIcon} className={colorStyle(focused)} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: i18n.t('settings'),
+          tabBarIcon: ({ focused }) => <Icon as={SettingsIcon} className={colorStyle(focused)} />,
         }}
       />
     </Tabs>
