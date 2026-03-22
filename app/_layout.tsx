@@ -12,8 +12,9 @@ import { useEffect, useRef, useState } from "react";
 import { candyStore } from "@/store/candyStore";
 import { useMoodStore } from "@/store/moodStore";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useStreakStore } from "@/store/streakStore";
 import { scheduleNotificationsForRoutineTasks, setupNotificationHandler } from "@/services/notification";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import log from "@/services/logger";
 import { getDB } from "@/services/db";
 import { migrateFromAsyncStorage } from "@/services/migration";
@@ -55,6 +56,8 @@ export default function RootLayout() {
         await candyStore.getState().initialize();
         await useMoodStore.getState().initialize();
         await useSettingsStore.getState().loadSettings();
+        await useStreakStore.getState().loadStreak();
+        await useStreakStore.getState().evaluateNewDay();
 
         setIsReady(true);
       } catch (error) {
@@ -83,6 +86,16 @@ export default function RootLayout() {
         // unsubscribe();
       };
     }
+  }, [isReady]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        useStreakStore.getState().evaluateNewDay();
+      }
+    });
+    return () => subscription.remove();
   }, [isReady]);
 
   if (!loaded || !isReady) {

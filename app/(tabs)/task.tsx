@@ -1,5 +1,6 @@
 import { RoutineTaskService } from "@/services/routineTaskService";
 import { useCandyContext } from "@/store/context";
+import { useStreakStore } from "@/store/streakStore";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import {
@@ -393,6 +394,22 @@ export default function TaskScreen() {
           taskId,
           tasks.length,
         );
+      }
+
+      // Streak: update based on remaining completed count for today
+      const todayStr = toLocalDateString(new Date());
+      const selectedStr = toLocalDateString(filteredOnDate || new Date());
+      if (selectedStr === todayStr) {
+        // Count tasks that will be done after this toggle
+        const remainingDoneCount = task.isDone
+          ? tasks.filter((t) => t.isDone && t.id !== taskId).length  // un-completing: exclude this task
+          : tasks.filter((t) => t.isDone).length + 1;                // completing: add this task
+
+        if (remainingDoneCount > 0) {
+          await useStreakStore.getState().recordTaskDone();
+        } else {
+          await useStreakStore.getState().revokeToday();
+        }
       }
 
       setTasks((prevTasks) =>
