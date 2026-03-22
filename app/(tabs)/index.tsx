@@ -488,6 +488,7 @@ const CalendarView = ({ markedDates, onMonthChange }: CalendarViewProps) => {
       }
       markedDates={markedDates}
       dayComponent={({ date, marking, state }) => {
+        if (!date) return null;
         const markedData = markedDates ? markedDates[date.dateString] : null;
         const isActuallyMarked = markedData ? markedData.marked : false;
         const actualPercent = markedData ? markedData.rate * 100 : 0;
